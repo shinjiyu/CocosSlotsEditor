@@ -19,6 +19,7 @@ import { par, playSpine, starterAnim } from '../common/anim/compose';
 import { DESIGN_CELL_H, DESIGN_CELL_W, spawnCellFx } from './SymbolDefs';
 import type { CellFxDef, SymbolEntry, SymbolProvider } from './SymbolDefs';
 import { buildSymbolFx, enterFxName } from './symbolFx';
+import { playSfx, sfxStep } from './sfx';
 import { SymbolTemplate } from './SymbolTemplate';
 
 const { ccclass } = _decorator;
@@ -141,23 +142,26 @@ export class SymbolView extends Component {
         this.spineSkeleton = sk;
     }
 
-    /** 入场动效优先级：prefab SymbolTemplate > spine enterAnim > 内置 enterFx */
+    /** 入场动效优先级：prefab SymbolTemplate > spine enterAnim > 内置 enterFx；入场音效并行 */
     buildEnterAnim(): IAnim | null {
         if (this.currentId === null || !this.content) return null;
-        const tpl = this.prefabInstance?.getComponent(SymbolTemplate);
-        if (tpl) {
-            const anim = tpl.buildEnterAnim();
-            if (anim) return anim;
-        }
         const entry = this.provider?.getEntry(this.currentId);
-        if (!entry) return null;
-        const spineAnim = this.buildSpineHook(entry.enterAnim);
-        if (spineAnim) return spineAnim;
-        const fxName = enterFxName(entry.enterFx);
-        return fxName ? buildSymbolFx(fxName, this.content) : null;
+        let visual: IAnim | null = null;
+        const tpl = this.prefabInstance?.getComponent(SymbolTemplate);
+        if (tpl) visual = tpl.buildEnterAnim();
+        if (!visual && entry) {
+            visual = this.buildSpineHook(entry.enterAnim);
+            if (!visual) {
+                const fxName = enterFxName(entry.enterFx);
+                if (fxName) visual = buildSymbolFx(fxName, this.content);
+            }
+        }
+        const sound = entry?.enterSound ? sfxStep(entry.enterSound) : null;
+        if (visual && sound) return par(visual, sound);
+        return visual ?? sound;
     }
 
-    /** 中奖动画：符号自身（SymbolTemplate / spine winAnim）与格子特效并行 */
+    /** 中奖动画：符号自身（SymbolTemplate / spine winAnim）+ 中奖音效 + 格子特效并行 */
     buildWinAnim(): IAnim | null {
         if (this.currentId === null) return null;
         const entry = this.provider?.getEntry(this.currentId);
@@ -168,6 +172,7 @@ export class SymbolView extends Component {
             const spine = this.buildSpineHook(entry?.winAnim);
             if (spine) parts.push(spine);
         }
+        if (entry?.winSound) parts.push(sfxStep(entry.winSound));
         const fx = this.buildCellFxAnim(this.provider?.winCellFxFor(this.currentId) ?? null);
         if (fx) parts.push(fx);
         return parts.length ? par(...parts) : null;
@@ -190,6 +195,7 @@ export class SymbolView extends Component {
         } else {
             parts.push(this.buildDefaultVanish(defaultDur));
         }
+        if (entry?.vanishSound) parts.push(sfxStep(entry.vanishSound));
         const fx = this.buildCellFxAnim(this.provider?.vanishCellFxFor(this.currentId) ?? null);
         if (fx) parts.push(fx);
         return par(...parts);
@@ -227,12 +233,14 @@ export class SymbolView extends Component {
         });
     }
 
-    /** 格子特效：cell 节点上生成 spine 播一次，播完/取消自动销毁 */
+    /** 格子特效（多媒体）：cell 节点上生成 spine 播一次 + 音效同时触发，播完/取消自动销毁 */
     private buildCellFxAnim(def: CellFxDef | null): IAnim | null {
         if (!def) return null;
         return starterAnim((finish) => {
+            playSfx(def.sound, def.soundVolume);
             const sk = spawnCellFx(def, this.node, this.cellUnitScale());
             if (!sk) {
+                // 只配了音效没配 spine：触发完即完成
                 finish();
                 return;
             }

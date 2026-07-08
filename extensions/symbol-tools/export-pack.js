@@ -11,16 +11,30 @@
 const path = require('path');
 const fs = require('fs');
 
-/** 运行时脚本：单文件 */
+/**
+ * 运行时脚本：单文件。
+ * 覆盖完整播放闭环：符号库 + 盘面渲染 + 动画模板 + 播放编排 + 事件/音效。
+ * 编辑器专属（EditorHud / BoardEditorMain / PersistenceService）不随包。
+ */
 const RUNTIME_SCRIPTS = [
     'assets/scripts/editor-app/SymbolDefs.ts',
     'assets/scripts/editor-app/SymbolLibrary.ts',
     'assets/scripts/editor-app/SymbolView.ts',
     'assets/scripts/editor-app/SymbolTemplate.ts',
+    'assets/scripts/editor-app/SymbolCatalog.ts',
     'assets/scripts/editor-app/symbolFx.ts',
+    'assets/scripts/editor-app/sfx.ts',
+    'assets/scripts/editor-app/boardEvents.ts',
+    'assets/scripts/editor-app/animTemplates.ts',
+    'assets/scripts/editor-app/BoardView.ts',
+    'assets/scripts/editor-app/BoardDirector.ts',
 ];
-/** 运行时脚本：整目录（IAnim 框架等） */
-const RUNTIME_DIRS = ['assets/scripts/common'];
+/** 运行时脚本：整目录（IAnim 框架、SPIR 文档模型与 schema） */
+const RUNTIME_DIRS = [
+    'assets/scripts/common',
+    'assets/scripts/editor-core',
+    'assets/scripts/vendor/slot-presentation-ir',
+];
 
 async function exportPack() {
     const projectRoot = Editor.Project.path;

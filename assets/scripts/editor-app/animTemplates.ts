@@ -20,6 +20,7 @@ import type { PresentationState } from '../vendor/slot-presentation-ir/index';
 import type { IrFrameKind } from '../editor-core/index';
 import { readFrameExt } from '../editor-core/index';
 import type { BoardView } from './BoardView';
+import type { BoardEvents, BoardEventType } from './boardEvents';
 
 // ============================================================================
 // 上下文 / 参数
@@ -32,6 +33,10 @@ export interface TemplateContext {
     /** 时间轴上的下一帧（highlight 推断消除格用；可缺省） */
     next?: PresentationState;
     params: Record<string, unknown>;
+    /** 播放事件总线（BoardDirector 注入；模板在动画连接处发事件） */
+    events?: BoardEvents;
+    /** 本转移的目标帧 index（事件 payload 用） */
+    frameIndex?: number;
 }
 
 export interface ParamField {
@@ -96,6 +101,29 @@ function diffCells(prev: PresentationState, curr: PresentationState): CellDiff[]
 // ============================================================================
 // 模板实现
 // ============================================================================
+
+/**
+ * 事件步：在动画连接处发一个盘面事件并等待所有 handler。
+ * handler 返回 Promise 时动画链会停在这里直到 resolve（暂停/继续语义）。
+ */
+function eventStep(
+    ctx: TemplateContext,
+    type: BoardEventType,
+    cell?: { col: number; row: number; symbolId: number | null },
+): IAnim {
+    const ev = ctx.events;
+    if (!ev) return call(() => undefined);
+    return call(() =>
+        ev.emit({
+            type,
+            frameIndex: ctx.frameIndex ?? -1,
+            frameKind: readFrameExt(ctx.curr)?.frameKind ?? null,
+            col: cell?.col,
+            row: cell?.row,
+            symbolId: cell?.symbolId,
+        }),
+    );
+}
 
 /** 播放时才构建（symbol 钩子必须等落地/生效时再取） */
 function lazyCellAnim(build: () => IAnim | null): IAnim {
@@ -169,6 +197,7 @@ function buildDropInPhase(
                 }
                 return tw;
             }),
+            eventStep(ctx, 'symbol-land', { col: d.col, row: d.row, symbolId: d.currId }),
             symbolEnterStep(boardView, d.col, d.row),
         );
     });
@@ -427,6 +456,11 @@ const symbolWinTemplate: AnimTemplate = {
         const steps: IAnim[] = cells.map(({ col, row }, i) =>
             seq(
                 delay(i * stagger),
+                eventStep(ctx, 'symbol-win', {
+                    col,
+                    row,
+                    symbolId: curr.board.resolved[col]?.[row]?.symbolId ?? null,
+                }),
                 lazyCellAnim(() => {
                     // 符号自身 winAnim + 格子特效；都没配则回落一次小脉冲
                     const custom = boardView.getSymbolView(col, row)?.buildWinAnim();
@@ -468,6 +502,8 @@ const vanishTemplate: AnimTemplate = {
             if (!node) return call(() => undefined);
             return seq(
                 delay(i * stagger),
+                // 消除连接处事件：加分等业务挂这里；handler 返回 Promise 可暂停动画链
+                eventStep(ctx, 'symbol-vanish', { col: d.col, row: d.row, symbolId: d.prevId }),
                 lazyCellAnim(() =>
                     // 符号自身演出 + 格子特效并行；本体缺省缩淡由 SymbolView 内部
                     // 作用在 content 子节点上（不缩 cell，避免波及格子特效）

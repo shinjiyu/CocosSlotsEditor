@@ -7,7 +7,7 @@
  * （缺省 152×128，不逐符号配置），运行时按 board 格子大小整体等比缩放。
  */
 
-import { _decorator, Node, Prefab, SpriteFrame, UITransform, Vec2, sp } from 'cc';
+import { _decorator, AudioClip, Node, Prefab, SpriteFrame, UITransform, Vec2, sp } from 'cc';
 import { EnterFx } from './symbolFx';
 
 const { ccclass, property } = _decorator;
@@ -33,7 +33,18 @@ export class CellFxDef {
     @property({ tooltip: '相对格子中心的偏移（设计像素）' })
     offset = new Vec2(0, 0);
 
+    @property({ type: AudioClip, tooltip: '特效音效：与 spine 同时触发（多媒体特效的音频半边）' })
+    sound: AudioClip | null = null;
+
+    @property({ tooltip: '音效音量', range: [0, 1, 0.05], slide: true })
+    soundVolume = 1;
+
+    /** 有视觉或有声音都算有效（可以只配音效不配 spine） */
     get valid(): boolean {
+        return (!!this.spine && this.anim.length > 0) || !!this.sound;
+    }
+
+    get hasVisual(): boolean {
         return !!this.spine && this.anim.length > 0;
     }
 }
@@ -66,6 +77,15 @@ export class SymbolEntry {
 
     @property({ tooltip: 'spine 消除动画名（postClear 帧播）' })
     vanishAnim = '';
+
+    @property({ type: AudioClip, tooltip: '入场音效：与入场演出同时触发' })
+    enterSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '中奖音效：与中奖演出同时触发' })
+    winSound: AudioClip | null = null;
+
+    @property({ type: AudioClip, tooltip: '消除音效：与消除演出同时触发' })
+    vanishSound: AudioClip | null = null;
 
     @property({ type: EnterFx, tooltip: '内置入场动效（tween，无 spine 入场动画时用）' })
     enterFx = EnterFx.none;

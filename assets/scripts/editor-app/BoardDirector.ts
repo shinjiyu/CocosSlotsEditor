@@ -11,8 +11,12 @@ import type { EditorDoc } from '../editor-core/index';
 import { readFrameExt } from '../editor-core/index';
 import type { BoardView } from './BoardView';
 import { resolveTemplateForState } from './animTemplates';
+import { BoardEvents } from './boardEvents';
 
 export class BoardDirector {
+    /** 播放事件总线：on('symbol-vanish'|...|'*')；handler 返回 Promise 可暂停动画链 */
+    readonly events = new BoardEvents();
+
     private current: IAnim | null = null;
     private playing = false;
 
@@ -20,6 +24,12 @@ export class BoardDirector {
         private boardView: BoardView,
         private getDoc: () => EditorDoc | null,
     ) {}
+
+    private emit(type: Parameters<BoardEvents['emit']>[0]['type'], frameIndex: number): Promise<void> {
+        const doc = this.getDoc();
+        const kind = doc ? readFrameExt(doc.states[frameIndex])?.frameKind ?? null : null;
+        return this.events.emit({ type, frameIndex, frameKind: kind });
+    }
 
     get isPlaying(): boolean {
         return this.playing;
@@ -47,6 +57,7 @@ export class BoardDirector {
         this.boardView.render(doc.states[start]);
         let landed = start;
         try {
+            await this.emit('play-start', start);
             let i = start + 1;
             while (i <= end) {
                 // 收集并行批：[i, batchEnd]，后续帧只要标了 playWithPrev 就并进来
@@ -56,6 +67,7 @@ export class BoardDirector {
                 }
                 const anims: IAnim[] = [];
                 for (let k = i; k <= batchEnd; k++) {
+                    await this.emit('transition-start', k);
                     const { template, params } = resolveTemplateForState(doc.states[k]);
                     anims.push(
                         template.build({
@@ -64,6 +76,8 @@ export class BoardDirector {
                             curr: doc.states[k],
                             next: doc.states[k + 1],
                             params,
+                            events: this.events,
+                            frameIndex: k,
                         }),
                     );
                 }
@@ -73,6 +87,9 @@ export class BoardDirector {
                 // 动画只演过程；结束后以批末帧的 resolved 为准全量落帧
                 this.boardView.render(doc.states[batchEnd]);
                 landed = batchEnd;
+                for (let k = i; k <= batchEnd; k++) {
+                    await this.emit('transition-end', k);
+                }
                 onStep?.(batchEnd);
                 i = batchEnd + 1;
             }
@@ -83,6 +100,7 @@ export class BoardDirector {
         } finally {
             this.current = null;
             this.playing = false;
+            void this.emit('play-end', landed);
         }
         return landed;
     }

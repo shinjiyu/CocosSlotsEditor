@@ -98,6 +98,16 @@ export class BoardEditorMain extends Component {
         this.node.addChild(boardNode);
         this.director = new BoardDirector(this.boardView, () => this.doc);
 
+        // —— 事件用法示例（业务侧照此注册；handler 返回 Promise 可让动画停在连接处等待）——
+        this.director.events.on('symbol-vanish', (e) => {
+            console.log(`[BoardEvents demo] 消除 → 加分点：symbol=${e.symbolId} @ (${e.col},${e.row}) 帧${e.frameIndex + 1}`);
+        });
+        this.director.events.on('*', (e) => {
+            if (e.type === 'transition-start' || e.type === 'transition-end') {
+                console.log(`[BoardEvents] ${e.type} 帧${e.frameIndex + 1} kind=${e.frameKind ?? '-'}`);
+            }
+        });
+
         const hudNode = new Node('EditorHud');
         hudNode.addComponent(UITransform);
         this.hud = hudNode.addComponent(EditorHud);
