@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "recipes": {
+    "preview_refresh_scripts": {
+      "description": "批量 asset-db.refresh-asset + preview.reload-terminal（默认 db://assets/scripts；可传 dbUrls）",
+      "mode": "eval",
+      "params": {
+        "dbUrls": {
+          "type": "array",
+          "description": "db:// 列表；省略则 db://assets/scripts",
+          "default": [],
+          "optional": true
+        }
+      },
+      "promoted": true,
+      "createdAt": "2026-07-07T05:43:20.622Z",
+      "updatedAt": "2026-07-08T03:43:34.098Z",
+      "useCount": 20,
+      "toolName": "cocosmcp_r_preview_refresh_scripts"
+    },
+    "tail_creator_console": {
+      "description": "读取 Creator IDE 控制台日志 temp/logs/project.log 尾部",
+      "mode": "eval",
+      "params": {
+        "bytes": {
+          "type": "number",
+          "description": "读取尾部字节数",
+          "default": 8000,
+          "optional": true
+        },
+        "grep": {
+          "type": "string",
+          "description": "只保留包含该子串的行",
+          "default": "",
+          "optional": true
+        }
+      },
+      "promoted": true,
+      "createdAt": "2026-07-07T05:43:36.024Z",
+      "updatedAt": "2026-07-08T03:22:58.732Z",
+      "useCount": 12,
+      "toolName": "cocosmcp_r_tail_creator_console"
+    },
+    "sync_symbol_catalog": {
+      "description": "扫描 resources/symbols(+symbol-spines/+symbol-prefabs)，增量同步 symbol-catalog.json（转发 symbol-tools 扩展，单一逻辑源）",
+      "mode": "eval",
+      "params": {},
+      "promoted": true,
+      "createdAt": "2026-07-07T08:58:46.157Z",
+      "updatedAt": "2026-07-07T09:31:41.385Z",
+      "useCount": 2,
+      "toolName": "cocosmcp_r_sync_symbol_catalog"
+    }
+  }
+}

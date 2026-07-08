@@ -1,0 +1,187 @@
+symbol_15.png
+size: 144,444
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+A
+  rotate: true
+  xy: 104, 217
+  size: 28, 37
+  orig: 29, 38
+  offset: 0, 1
+  index: -1
+A_light
+  rotate: true
+  xy: 95, 29
+  size: 21, 28
+  orig: 21, 28
+  offset: 0, 0
+  index: -1
+C
+  rotate: true
+  xy: 1, 60
+  size: 23, 37
+  orig: 24, 38
+  offset: 0, 1
+  index: -1
+C_light
+  rotate: true
+  xy: 95, 12
+  size: 16, 28
+  orig: 17, 28
+  offset: 0, 0
+  index: -1
+E
+  rotate: true
+  xy: 97, 78
+  size: 24, 37
+  orig: 25, 38
+  offset: 0, 1
+  index: -1
+E_light
+  rotate: false
+  xy: 77, 52
+  size: 18, 29
+  orig: 18, 29
+  offset: 0, 0
+  index: -1
+R
+  rotate: true
+  xy: 104, 246
+  size: 29, 38
+  orig: 30, 38
+  offset: 1, 0
+  index: -1
+R_light
+  rotate: true
+  xy: 1, 1
+  size: 22, 28
+  orig: 23, 28
+  offset: 0, 0
+  index: -1
+S
+  rotate: true
+  xy: 39, 61
+  size: 22, 37
+  orig: 24, 37
+  offset: 1, 0
+  index: -1
+S_light
+  rotate: true
+  xy: 37, 18
+  size: 16, 29
+  orig: 16, 29
+  offset: 0, 0
+  index: -1
+T1
+  rotate: true
+  xy: 39, 35
+  size: 25, 36
+  orig: 26, 37
+  offset: 1, 1
+  index: -1
+T1_light
+  rotate: false
+  xy: 76, 23
+  size: 18, 28
+  orig: 19, 28
+  offset: 1, 0
+  index: -1
+T2
+  rotate: true
+  xy: 104, 191
+  size: 25, 37
+  orig: 26, 38
+  offset: 1, 1
+  index: -1
+T2_light
+  rotate: false
+  xy: 77, 82
+  size: 19, 28
+  orig: 19, 28
+  offset: 0, 0
+  index: -1
+body
+  rotate: true
+  xy: 1, 84
+  size: 58, 75
+  orig: 58, 75
+  offset: 0, 0
+  index: -1
+gem
+  rotate: false
+  xy: 98, 156
+  size: 41, 34
+  orig: 41, 34
+  offset: 0, 0
+  index: -1
+gem_light
+  rotate: true
+  xy: 124, 27
+  size: 23, 18
+  orig: 23, 20
+  offset: 0, 2
+  index: -1
+glow
+  rotate: true
+  xy: 1, 276
+  size: 166, 140
+  orig: 166, 140
+  offset: 0, 0
+  index: -1
+horn_R
+  rotate: true
+  xy: 98, 103
+  size: 23, 41
+  orig: 23, 41
+  offset: 0, 0
+  index: -1
+leg_L1
+  rotate: false
+  xy: 96, 51
+  size: 32, 26
+  orig: 32, 26
+  offset: 0, 0
+  index: -1
+leg_R2
+  rotate: true
+  xy: 98, 127
+  size: 28, 41
+  orig: 29, 42
+  offset: 1, 1
+  index: -1
+light
+  rotate: false
+  xy: 124, 8
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+sparkle
+  rotate: false
+  xy: 1, 24
+  size: 35, 35
+  orig: 41, 43
+  offset: 3, 4
+  index: -1
+sweeplight
+  rotate: false
+  xy: 77, 111
+  size: 20, 31
+  orig: 22, 31
+  offset: 0, 0
+  index: -1
+wing
+  rotate: true
+  xy: 1, 143
+  size: 65, 96
+  orig: 66, 96
+  offset: 1, 0
+  index: -1
+wing_blur
+  rotate: true
+  xy: 1, 209
+  size: 66, 102
+  orig: 70, 104
+  offset: 2, 1
+  index: -1

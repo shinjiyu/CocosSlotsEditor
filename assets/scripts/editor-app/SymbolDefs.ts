@@ -1,0 +1,120 @@
+/**
+ * SymbolDefs — SymbolLibrary 的数据类（非 Component，可与库组件分文件共存）。
+ *
+ * SymbolEntry：一个符号的全部配置，资源直接拖引用（不走路径/约定目录）。
+ * CellFxDef：格子级通用特效（中奖高亮框 / 消除爆光等），与符号自身动画并行播放。
+ * 所有尺寸都在「设计像素」空间；符号设计尺寸是 SymbolLibrary 上的全局配置
+ * （缺省 152×128，不逐符号配置），运行时按 board 格子大小整体等比缩放。
+ */
+
+import { _decorator, Node, Prefab, SpriteFrame, UITransform, Vec2, sp } from 'cc';
+import { EnterFx } from './symbolFx';
+
+const { ccclass, property } = _decorator;
+
+/** 格子设计尺寸（格子级特效的缩放基准） */
+export const DESIGN_CELL_W = 152;
+export const DESIGN_CELL_H = 128;
+
+@ccclass('CellFxDef')
+export class CellFxDef {
+    @property({ type: sp.SkeletonData, tooltip: '格子特效 spine；留空 = 不启用（条目上留空 = 用全局）' })
+    spine: sp.SkeletonData | null = null;
+
+    @property({ tooltip: '播放的动画名（如 win / out）' })
+    anim = '';
+
+    @property({ tooltip: '盖在符号上层；不勾则垫在符号下层' })
+    front = true;
+
+    @property({ tooltip: '缩放微调（设计像素自适应之上再乘）' })
+    scale = 1;
+
+    @property({ tooltip: '相对格子中心的偏移（设计像素）' })
+    offset = new Vec2(0, 0);
+
+    get valid(): boolean {
+        return !!this.spine && this.anim.length > 0;
+    }
+}
+
+@ccclass('SymbolEntry')
+export class SymbolEntry {
+    @property({ tooltip: '盘面数据(SPIR Cell.symbolId)引用的稳定 id；不要与其它条目重复' })
+    id = 0;
+
+    @property({ tooltip: '显示名（刷子面板 / 预览墙标注）' })
+    name = '';
+
+    @property({ type: SpriteFrame, tooltip: '静态纹理：无 spine 时的显示，也是刷子面板图标' })
+    texture: SpriteFrame | null = null;
+
+    @property({ type: sp.SkeletonData, tooltip: '骨骼动画；拖入后优先于纹理显示' })
+    spine: sp.SkeletonData | null = null;
+
+    @property({ type: Prefab, tooltip: '特殊符号才用：自定义 prefab（根节点可挂 SymbolTemplate）' })
+    prefab: Prefab | null = null;
+
+    @property({ tooltip: 'spine 常驻循环动画名；空 = 停在 setup pose' })
+    idleAnim = '';
+
+    @property({ tooltip: 'spine 入场动画名；空 = 用下方内置入场动效' })
+    enterAnim = '';
+
+    @property({ tooltip: 'spine 中奖动画名（highlight 帧播）' })
+    winAnim = '';
+
+    @property({ tooltip: 'spine 消除动画名（postClear 帧播）' })
+    vanishAnim = '';
+
+    @property({ type: EnterFx, tooltip: '内置入场动效（tween，无 spine 入场动画时用）' })
+    enterFx = EnterFx.none;
+
+    @property({ tooltip: '缩放微调（设计尺寸自适应之上再乘）' })
+    scaleMul = 1;
+
+    @property({ type: CellFxDef, tooltip: '本符号专用中奖格子特效；spine 留空 = 用全局' })
+    winCellFx = new CellFxDef();
+
+    @property({ type: CellFxDef, tooltip: '本符号专用消除格子特效；spine 留空 = 用全局' })
+    vanishCellFx = new CellFxDef();
+
+    /** 内容形态：prefab > spine > 纹理 */
+    get contentKind(): 'prefab' | 'spine' | 'sprite' {
+        if (this.prefab) return 'prefab';
+        if (this.spine) return 'spine';
+        return 'sprite';
+    }
+}
+
+/** SymbolView 取符号配置的抽象（运行时 SymbolCatalog / 编辑期 SymbolLibrary 都实现它） */
+export interface SymbolProvider {
+    getEntry(id: number): SymbolEntry | null;
+    /** 全局符号设计尺寸（px，所有符号资产统一按此尺寸制作） */
+    readonly designW: number;
+    readonly designH: number;
+    /** 解析后的中奖格子特效（条目覆盖 > 全局；无则 null） */
+    winCellFxFor(id: number): CellFxDef | null;
+    vanishCellFxFor(id: number): CellFxDef | null;
+}
+
+/**
+ * 在 host（格子节点）上生成一个格子特效 spine 节点。
+ * unitScale：设计像素 → host 实际像素的换算比。
+ * 返回骨骼组件；播放与销毁由调用方负责。
+ */
+export function spawnCellFx(def: CellFxDef, host: Node, unitScale: number): sp.Skeleton | null {
+    const data = def.spine;
+    if (!data || !def.anim) return null;
+    const n = new Node('cellFx');
+    n.addComponent(UITransform);
+    const sk = n.addComponent(sp.Skeleton);
+    sk.skeletonData = data;
+    sk.premultipliedAlpha = false;
+    const s = unitScale * def.scale;
+    n.setScale(s, s, 1);
+    n.setPosition(def.offset.x * unitScale, def.offset.y * unitScale, 0);
+    host.addChild(n);
+    n.setSiblingIndex(def.front ? host.children.length - 1 : 0);
+    return sk;
+}

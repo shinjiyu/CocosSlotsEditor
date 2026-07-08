@@ -1,0 +1,75 @@
+symbol_02.png
+size: 212,380
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+glow
+  rotate: true
+  xy: 1, 198
+  size: 87, 128
+  orig: 87, 128
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 130, 267
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+pattern
+  rotate: true
+  xy: 1, 286
+  size: 90, 161
+  orig: 90, 161
+  offset: 0, 0
+  index: -1
+s2_board
+  rotate: true
+  xy: 128, 65
+  size: 91, 82
+  orig: 91, 82
+  offset: 0, 0
+  index: -1
+s2_frame
+  rotate: false
+  xy: 1, 16
+  size: 101, 92
+  orig: 102, 94
+  offset: 1, 1
+  index: -1
+s2_light
+  rotate: true
+  xy: 1, 109
+  size: 88, 126
+  orig: 91, 130
+  offset: 2, 2
+  index: -1
+s2_shadow
+  rotate: false
+  xy: 130, 157
+  size: 70, 109
+  orig: 72, 111
+  offset: 1, 1
+  index: -1
+snakeA
+  rotate: true
+  xy: 103, 1
+  size: 63, 107
+  orig: 63, 107
+  offset: 0, 0
+  index: -1
+snakeB
+  rotate: false
+  xy: 163, 308
+  size: 37, 68
+  orig: 37, 68
+  offset: 0, 0
+  index: -1
+sparkle
+  rotate: true
+  xy: 163, 275
+  size: 32, 39
+  orig: 41, 49
+  offset: 5, 5
+  index: -1

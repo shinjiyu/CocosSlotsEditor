@@ -1,0 +1,68 @@
+symbol_03.png
+size: 272,268
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+board
+  rotate: true
+  xy: 105, 16
+  size: 90, 86
+  orig: 90, 86
+  offset: 0, 0
+  index: -1
+bow
+  rotate: false
+  xy: 187, 182
+  size: 83, 84
+  orig: 83, 84
+  offset: 0, 0
+  index: -1
+glow
+  rotate: false
+  xy: 1, 1
+  size: 103, 104
+  orig: 103, 104
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 94, 107
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+pattern
+  rotate: false
+  xy: 1, 106
+  size: 92, 160
+  orig: 93, 161
+  offset: 1, 0
+  index: -1
+s3_frame
+  rotate: true
+  xy: 94, 166
+  size: 100, 92
+  orig: 102, 94
+  offset: 1, 1
+  index: -1
+s3_light
+  rotate: true
+  xy: 192, 100
+  size: 81, 78
+  orig: 84, 80
+  offset: 1, 1
+  index: -1
+s3_shadow
+  rotate: false
+  xy: 192, 22
+  size: 76, 77
+  orig: 79, 79
+  offset: 2, 1
+  index: -1
+sparkle
+  rotate: false
+  xy: 94, 126
+  size: 32, 39
+  orig: 41, 49
+  offset: 5, 5
+  index: -1

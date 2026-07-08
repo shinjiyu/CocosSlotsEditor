@@ -1,0 +1,68 @@
+symbol_13.png
+size: 636,124
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+A_frame
+  rotate: false
+  xy: 246, 3
+  size: 120, 120
+  orig: 122, 122
+  offset: 1, 1
+  index: -1
+A_shadow
+  rotate: false
+  xy: 124, 2
+  size: 121, 121
+  orig: 123, 123
+  offset: 1, 1
+  index: -1
+C_frame_blur
+  rotate: false
+  xy: 367, 27
+  size: 94, 96
+  orig: 94, 96
+  offset: 0, 0
+  index: -1
+C_frame_blur_B
+  rotate: false
+  xy: 462, 27
+  size: 94, 96
+  orig: 94, 96
+  offset: 0, 0
+  index: -1
+C_frame_glow
+  rotate: false
+  xy: 1, 1
+  size: 122, 122
+  orig: 122, 122
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 610, 28
+  size: 18, 18
+  orig: 20, 20
+  offset: 1, 1
+  index: -1
+s13
+  rotate: false
+  xy: 557, 47
+  size: 76, 76
+  orig: 78, 78
+  offset: 1, 1
+  index: -1
+sparkle
+  rotate: true
+  xy: 557, 2
+  size: 44, 52
+  orig: 44, 52
+  offset: 0, 0
+  index: -1
+sweeplight
+  rotate: true
+  xy: 367, 5
+  size: 21, 32
+  orig: 21, 32
+  offset: 0, 0
+  index: -1

@@ -1,0 +1,40 @@
+symbol_07.png
+size: 192,96
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+s7_frame
+  rotate: false
+  xy: 139, 45
+  size: 50, 50
+  orig: 54, 54
+  offset: 2, 2
+  index: -1
+s7_gem
+  rotate: false
+  xy: 84, 41
+  size: 54, 54
+  orig: 54, 54
+  offset: 0, 0
+  index: -1
+s7_gem2
+  rotate: false
+  xy: 139, 1
+  size: 43, 43
+  orig: 43, 43
+  offset: 0, 0
+  index: -1
+s7_glow
+  rotate: true
+  xy: 1, 9
+  size: 86, 82
+  orig: 104, 99
+  offset: 9, 8
+  index: -1
+sweeplight
+  rotate: false
+  xy: 84, 9
+  size: 20, 31
+  orig: 22, 31
+  offset: 0, 0
+  index: -1

@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "plugins": {
+    "asset-meta": {
+      "enabled": true,
+      "installedAt": "2026-07-07T05:13:51.814Z",
+      "cocosVersionSpec": "3.8.8",
+      "detectedCreatorVersion": "3.8.8",
+      "toolVersionSlug": "cc388",
+      "cocosCreatorVersion": "3.8.8",
+      "cocosVersionSlug": "cc388",
+      "installPath": ".cocosmcp/installed/asset-meta",
+      "toolsVersioned": [
+        "cocosmcp_cc388_asset_meta_status",
+        "cocosmcp_cc388_import_asset_meta",
+        "cocosmcp_cc388_refresh_asset_meta"
+      ],
+      "id": "asset-meta"
+    },
+    "asset-sync": {
+      "enabled": true,
+      "installedAt": "2026-07-07T05:13:51.824Z",
+      "cocosVersionSpec": "3.8.8",
+      "detectedCreatorVersion": "3.8.8",
+      "toolVersionSlug": "cc388",
+      "cocosCreatorVersion": "3.8.8",
+      "cocosVersionSlug": "cc388",
+      "installPath": ".cocosmcp/installed/asset-sync",
+      "toolsVersioned": [
+        "cocosmcp_cc388_sync_external_assets"
+      ],
+      "id": "asset-sync"
+    },
+    "genbot": {
+      "enabled": true,
+      "installedAt": "2026-07-07T05:13:51.832Z",
+      "cocosVersionSpec": "3.8.*",
+      "detectedCreatorVersion": "3.8.8",
+      "toolVersionSlug": "cc38x",
+      "cocosCreatorVersion": "3.8.8",
+      "cocosVersionSlug": "cc38x",
+      "installPath": ".cocosmcp/installed/genbot",
+      "toolsVersioned": [
+        "cocosmcp_cc38x_genbot_generate",
+        "cocosmcp_cc38x_genbot_status"
+      ],
+      "id": "genbot"
+    },
+    "ir-prefab": {
+      "enabled": true,
+      "installedAt": "2026-07-07T05:13:51.843Z",
+      "cocosVersionSpec": "3.8.8",
+      "detectedCreatorVersion": "3.8.8",
+      "toolVersionSlug": "cc388",
+      "cocosCreatorVersion": "3.8.8",
+      "cocosVersionSlug": "cc388",
+      "installPath": ".cocosmcp/installed/ir-prefab",
+      "toolsVersioned": [
+        "cocosmcp_cc388_generate_ir_prefabs"
+      ],
+      "id": "ir-prefab"
+    }
+  },
+  "updatedAt": "2026-07-07T05:13:51.844Z",
+  "cocosCreatorVersion": "3.8.8",
+  "cocosVersionSlug": "cc388"
+}

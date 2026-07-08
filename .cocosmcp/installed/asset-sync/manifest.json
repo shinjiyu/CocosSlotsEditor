@@ -1,0 +1,19 @@
+{
+  "id": "asset-sync",
+  "name": "Asset Sync",
+  "description": "Sync assets from external export directory into the project",
+  "cocosVersion": "3.8.8",
+  "tools": [
+    "cocosmcp_sync_external_assets"
+  ],
+  "installedAt": "2026-07-07T05:13:51.824Z",
+  "cocosVersionSpec": "3.8.8",
+  "detectedCreatorVersion": "3.8.8",
+  "toolVersionSlug": "cc388",
+  "cocosCreatorVersion": "3.8.8",
+  "cocosVersionSlug": "cc388",
+  "source": "builtin",
+  "toolsVersioned": [
+    "cocosmcp_cc388_sync_external_assets"
+  ]
+}

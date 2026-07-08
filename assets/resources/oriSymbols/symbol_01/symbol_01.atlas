@@ -1,0 +1,89 @@
+symbol_01.png
+size: 1028,116
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+board
+  rotate: true
+  xy: 909, 23
+  size: 90, 81
+  orig: 90, 81
+  offset: 0, 0
+  index: -1
+glow
+  rotate: false
+  xy: 161, 1
+  size: 130, 112
+  orig: 137, 118
+  offset: 4, 3
+  index: -1
+light
+  rotate: false
+  xy: 1, 2
+  size: 18, 18
+  orig: 18, 18
+  offset: 0, 0
+  index: -1
+pattern
+  rotate: true
+  xy: 1, 21
+  size: 92, 159
+  orig: 94, 161
+  offset: 0, 1
+  index: -1
+s1
+  rotate: true
+  xy: 383, 4
+  size: 109, 87
+  orig: 109, 87
+  offset: 0, 0
+  index: -1
+s1_eye
+  rotate: true
+  xy: 471, 6
+  size: 107, 86
+  orig: 107, 86
+  offset: 0, 0
+  index: -1
+s1_eye_B
+  rotate: true
+  xy: 558, 6
+  size: 107, 86
+  orig: 107, 86
+  offset: 0, 0
+  index: -1
+s1_eye_C
+  rotate: true
+  xy: 645, 6
+  size: 107, 86
+  orig: 107, 86
+  offset: 0, 0
+  index: -1
+s1_frame
+  rotate: true
+  xy: 732, 13
+  size: 100, 92
+  orig: 102, 94
+  offset: 1, 1
+  index: -1
+s1_glow
+  rotate: true
+  xy: 825, 19
+  size: 94, 83
+  orig: 97, 85
+  offset: 1, 1
+  index: -1
+s1_shadow
+  rotate: true
+  xy: 292, 1
+  size: 112, 90
+  orig: 112, 91
+  offset: 0, 0
+  index: -1
+sparkle
+  rotate: false
+  xy: 991, 74
+  size: 33, 39
+  orig: 40, 47
+  offset: 4, 4
+  index: -1

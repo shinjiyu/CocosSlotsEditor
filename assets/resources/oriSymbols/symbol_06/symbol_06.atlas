@@ -1,0 +1,40 @@
+symbol_06.png
+size: 128,140
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+s6_frame
+  rotate: false
+  xy: 1, 1
+  size: 50, 50
+  orig: 50, 50
+  offset: 0, 0
+  index: -1
+s6_gem
+  rotate: false
+  xy: 52, 1
+  size: 50, 50
+  orig: 50, 50
+  offset: 0, 0
+  index: -1
+s6_gem2
+  rotate: false
+  xy: 84, 93
+  size: 43, 43
+  orig: 43, 43
+  offset: 0, 0
+  index: -1
+s6_glow
+  rotate: true
+  xy: 1, 52
+  size: 84, 82
+  orig: 102, 95
+  offset: 8, 6
+  index: -1
+sweeplight
+  rotate: true
+  xy: 84, 72
+  size: 20, 31
+  orig: 22, 31
+  offset: 0, 0
+  index: -1

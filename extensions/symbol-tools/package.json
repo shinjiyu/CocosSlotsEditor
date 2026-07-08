@@ -1,0 +1,23 @@
+{
+  "package_version": 2,
+  "version": "2.0.0",
+  "name": "symbol-tools",
+  "description": "盘面编辑器资产工具：导出 symbol-library 依赖闭包为可迁移的 Symbol 包",
+  "main": "./main.js",
+  "author": "symbolEditor",
+  "editor": ">=3.8.0",
+  "contributions": {
+    "menu": [
+      {
+        "path": "扩展/盘面编辑器",
+        "label": "导出 Symbol 包",
+        "message": "export-pack"
+      }
+    ],
+    "messages": {
+      "export-pack": {
+        "methods": ["exportPack"]
+      }
+    }
+  }
+}

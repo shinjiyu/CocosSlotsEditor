@@ -1,0 +1,20 @@
+{
+  "name": "tail_creator_console",
+  "description": "读取 Creator IDE 控制台日志 temp/logs/project.log 尾部",
+  "mode": "eval",
+  "params": {
+    "bytes": {
+      "type": "number",
+      "description": "读取尾部字节数",
+      "default": 8000,
+      "optional": true
+    },
+    "grep": {
+      "type": "string",
+      "description": "只保留包含该子串的行",
+      "default": "",
+      "optional": true
+    }
+  },
+  "code": "const p = path.join(Editor.Project.path, 'temp/logs/project.log');\nconst b = (typeof bytes === 'number' && bytes > 0) ? bytes : 8000;\nconst g = (typeof grep === 'string') ? grep : '';\nconst stat = fs.statSync(p);\nconst start = Math.max(0, stat.size - b);\nconst fd = fs.openSync(p, 'r');\nconst buf = Buffer.alloc(stat.size - start);\nfs.readSync(fd, buf, 0, buf.length, start);\nfs.closeSync(fd);\nlet lines = buf.toString('utf8').split(/\\r?\\n/);\nif (g) lines = lines.filter(l => l.includes(g));\nreturn lines.slice(-80).join('\\n');"
+}

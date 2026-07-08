@@ -1,0 +1,33 @@
+symbol_08.png
+size: 104,132
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+s8_frame
+  rotate: false
+  xy: 1, 1
+  size: 50, 50
+  orig: 50, 50
+  offset: 0, 0
+  index: -1
+s8_gem
+  rotate: false
+  xy: 52, 1
+  size: 50, 50
+  orig: 50, 50
+  offset: 0, 0
+  index: -1
+s8_glow
+  rotate: true
+  xy: 1, 52
+  size: 78, 75
+  orig: 98, 79
+  offset: 10, 2
+  index: -1
+sweeplight
+  rotate: false
+  xy: 77, 99
+  size: 20, 31
+  orig: 22, 31
+  offset: 0, 0
+  index: -1

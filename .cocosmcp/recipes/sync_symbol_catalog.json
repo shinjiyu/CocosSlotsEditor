@@ -1,0 +1,7 @@
+{
+  "name": "sync_symbol_catalog",
+  "description": "扫描 resources/symbols(+symbol-spines/+symbol-prefabs)，增量同步 symbol-catalog.json（转发 symbol-tools 扩展，单一逻辑源）",
+  "mode": "eval",
+  "params": {},
+  "code": "return await Editor.Message.request('symbol-tools', 'sync-catalog');"
+}

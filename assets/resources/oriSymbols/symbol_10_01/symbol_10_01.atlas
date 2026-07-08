@@ -1,0 +1,68 @@
+symbol_10_01.png
+size: 640,128
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+B_frame
+  rotate: false
+  xy: 253, 9
+  size: 119, 117
+  orig: 121, 119
+  offset: 1, 1
+  index: -1
+B_shadow
+  rotate: false
+  xy: 1, 1
+  size: 128, 125
+  orig: 130, 127
+  offset: 1, 1
+  index: -1
+C_frame_blur
+  rotate: false
+  xy: 373, 30
+  size: 94, 96
+  orig: 94, 96
+  offset: 0, 0
+  index: -1
+C_frame_blur_B
+  rotate: false
+  xy: 468, 30
+  size: 94, 96
+  orig: 94, 96
+  offset: 0, 0
+  index: -1
+C_frame_glow
+  rotate: false
+  xy: 130, 4
+  size: 122, 122
+  orig: 122, 122
+  offset: 0, 0
+  index: -1
+light
+  rotate: false
+  xy: 373, 11
+  size: 18, 18
+  orig: 20, 20
+  offset: 1, 1
+  index: -1
+s10
+  rotate: false
+  xy: 563, 50
+  size: 76, 76
+  orig: 78, 78
+  offset: 1, 1
+  index: -1
+sparkle
+  rotate: true
+  xy: 563, 5
+  size: 44, 52
+  orig: 44, 52
+  offset: 0, 0
+  index: -1
+sweeplight
+  rotate: false
+  xy: 616, 17
+  size: 21, 32
+  orig: 21, 32
+  offset: 0, 0
+  index: -1

@@ -1,0 +1,75 @@
+symbol_14.png
+size: 548,164
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+J
+  rotate: true
+  xy: 225, 5
+  size: 33, 58
+  orig: 35, 60
+  offset: 1, 1
+  index: -1
+J_sha
+  rotate: true
+  xy: 368, 5
+  size: 37, 66
+  orig: 40, 67
+  offset: 2, 1
+  index: -1
+P
+  rotate: true
+  xy: 165, 1
+  size: 37, 59
+  orig: 39, 61
+  offset: 1, 1
+  index: -1
+P_sha
+  rotate: true
+  xy: 301, 3
+  size: 39, 66
+  orig: 41, 68
+  offset: 1, 2
+  index: -1
+bg_glow_A
+  rotate: false
+  xy: 1, 5
+  size: 163, 156
+  orig: 170, 160
+  offset: 4, 1
+  index: -1
+bg_glow_B
+  rotate: false
+  xy: 165, 39
+  size: 135, 122
+  orig: 143, 134
+  offset: 4, 5
+  index: -1
+sparkle
+  rotate: true
+  xy: 435, 8
+  size: 27, 33
+  orig: 38, 43
+  offset: 9, 5
+  index: -1
+sweeplight
+  rotate: true
+  xy: 469, 15
+  size: 20, 39
+  orig: 23, 41
+  offset: 1, 1
+  index: -1
+triangle
+  rotate: true
+  xy: 443, 36
+  size: 125, 103
+  orig: 131, 108
+  offset: 3, 2
+  index: -1
+triangle_glow
+  rotate: false
+  xy: 301, 43
+  size: 141, 118
+  orig: 143, 121
+  offset: 1, 1
+  index: -1
