@@ -6,6 +6,7 @@
 import { _decorator, Component, JsonAsset, Node, UITransform } from 'cc';
 import {
     deserializeDoc,
+    serializeDoc,
     validateDoc,
     readFrameExt,
     makeCompactedState,
@@ -54,6 +55,7 @@ export class BoardEditorMain extends Component {
     private brush: number | null | undefined = undefined;
     /** 进行中的一笔（touch 期间累积，end 时合成一次 undo） */
     private stroke: EditorCommand[] = [];
+    private disposeHostBridge: (() => void) | null = null;
 
     async start(): Promise<void> {
         try {
@@ -74,9 +76,55 @@ export class BoardEditorMain extends Component {
             this.history = new CommandHistory(this.doc);
             this.buildLayout();
             this.showState(0);
+            this.installAiwsBridge();
             console.log(`[BoardEditorMain] ready, states=${this.doc.states.length}, source=${source}`);
         } catch (e) {
             console.error('[BoardEditorMain] load failed', e);
+        }
+    }
+
+    onDestroy(): void {
+        this.disposeHostBridge?.();
+        this.disposeHostBridge = null;
+    }
+
+    private installAiwsBridge(): void {
+        if (!this.persistence.aiwsEmbed) return;
+        this.disposeHostBridge = this.persistence.installHostBridge({
+            onLoadDoc: (doc) => this.applyHostDoc(doc),
+            onRequestDoc: () => this.doc,
+        });
+        this.persistence.notifyReady(this.docId);
+    }
+
+    private applyHostDoc(doc: EditorDoc): void {
+        const issues = validateDoc(doc);
+        if (issues.length) {
+            console.error('[BoardEditorMain] host load-doc 校验失败', issues);
+            this.hud?.setStatus(`加载失败: ${issues[0].code}`);
+            return;
+        }
+        this.doc = doc;
+        this.history = new CommandHistory(this.doc);
+        this.clearSelection();
+        this.showState(0);
+        this.hud?.setStatus(`已从 Workspace 加载 · ${doc.states.length} 帧`);
+        // 不写 localStorage，避免盖住工程 cfg；仍通知 parent 当前内容
+        if (this.persistence.aiwsEmbed) {
+            try {
+                window.parent.postMessage(
+                    {
+                        source: 'aiws-board',
+                        type: 'doc',
+                        id: doc.id,
+                        json: serializeDoc(doc, 0),
+                        dirty: false,
+                    },
+                    '*',
+                );
+            } catch {
+                /* ignore */
+            }
         }
     }
 
@@ -91,6 +139,11 @@ export class BoardEditorMain extends Component {
         boardNode.addComponent(UITransform);
         this.boardView = boardNode.addComponent(BoardView);
         this.boardView.setCatalog(this.catalog);
+        // 格子尺寸直接取符号库的「符号设计宽/高」，填充比 1：
+        // 符号 1:1 原尺寸显示（与 symbol-library 预览墙一致），不做适配缩放
+        this.boardView.cellW = this.catalog.designW;
+        this.boardView.cellH = this.catalog.designH;
+        this.boardView.cellFill = 1;
         this.restoreGaps();
         this.boardView.onCellPress = (col, row) => this.onCellPress(col, row);
         this.boardView.onStrokeEnd = () => this.onStrokeEnd();
@@ -136,6 +189,7 @@ export class BoardEditorMain extends Component {
             this.catalog,
         );
         this.hud.setGapInfo(this.boardView.colGap, this.boardView.rowGap);
+        this.refreshSizeInfo(null);
     }
 
     // ------------------------------------------------------------------
@@ -355,6 +409,41 @@ export class BoardEditorMain extends Component {
             const name = this.catalog.getEntry(this.brush)?.name ?? String(this.brush);
             this.hud.setCellInfo(`刷子: ${name}（盘面点/拖绘制）`);
         }
+        this.refreshSizeInfo(typeof this.brush === 'number' ? this.brush : null);
+    }
+
+    // ------------------------------------------------------------------
+    // 尺寸信息
+    // ------------------------------------------------------------------
+
+    /** 刷新 HUD 尺寸行：格子配置尺寸 + 指定 symbol 的实际渲染尺寸 */
+    private refreshSizeInfo(symbolId: number | null): void {
+        if (!this.hud || !this.boardView) return;
+        this.hud.setSizeInfo(this.describeSymbolSize(symbolId));
+    }
+
+    /**
+     * 尺寸描述文本。symbol 渲染逻辑与 SymbolView.fitScale 一致：
+     * 设计盒(designW×designH)等比缩进 格子×cellFill，再乘条目 scaleMul；
+     * 纹理走 RAW 模式 → 实际显示 = 纹理原始尺寸 × 该缩放。
+     */
+    private describeSymbolSize(symbolId: number | null): string {
+        const bv = this.boardView!;
+        const cellText = `格子 ${bv.cellW}×${bv.cellH} · 填充 ${bv.cellFill}`;
+        const entry = symbolId !== null ? this.catalog.getEntry(symbolId) : null;
+        if (!entry) return `${cellText}（点格子/选刷子看 symbol 尺寸）`;
+        const dw = this.catalog.designW;
+        const dh = this.catalog.designH;
+        const s = Math.min((bv.cellW * bv.cellFill) / dw, (bv.cellH * bv.cellFill) / dh) * entry.scaleMul;
+        const name = entry.name || String(entry.id);
+        let text = `${cellText}\n${name}: 缩放 ×${s.toFixed(3)} · 设计盒 ${Math.round(dw * s)}×${Math.round(dh * s)}`;
+        const tex = entry.texture;
+        if (tex) {
+            const ow = tex.originalSize.width;
+            const oh = tex.originalSize.height;
+            text += ` · 图 ${Math.round(ow * s)}×${Math.round(oh * s)}(原${ow}×${oh})`;
+        }
+        return text;
     }
 
     // ------------------------------------------------------------------
@@ -388,6 +477,7 @@ export class BoardEditorMain extends Component {
                     ? this.catalog.getEntry(cell.symbolId)?.name ?? String(cell.symbolId)
                     : '空';
             this.hud?.setCellInfo(`格 (${col},${row}) · ${name}（选刷子后可绘制）`);
+            this.refreshSizeInfo(cell?.symbolId ?? null);
             return;
         }
         const current = this.doc.states[this.currentIndex].board.resolved[col]?.[row]?.symbolId ?? null;
