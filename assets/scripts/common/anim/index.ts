@@ -1,3 +1,5 @@
+export { ANIM_CONTRACT_VERSION } from "./version";
+
 export type { IAnim, IRepeatableAnim, AnimState } from "./IAnim";
 export { CancelledError } from "./IAnim";
 
