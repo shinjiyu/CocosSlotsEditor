@@ -119,6 +119,83 @@ export function makeCompactedState(source: PresentationState): PresentationState
     return next;
 }
 
+/**
+ * 由 source 生成倍率球扩散后的盘面：每个 multi 实体向四邻空格复制一份（同符号/同倍率），
+ * 并在新 entity.meta.expandFrom 记录源格，供 multiExpand 动画飞入。
+ * 返回 null 表示无可扩散目标。
+ */
+export function makeExpandedState(source: PresentationState): PresentationState | null {
+    const next = deserialize(serialize(source));
+    const { cols, visibleRows } = next.board.topology;
+    const dirs: Array<[number, number]> = [
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0],
+    ];
+
+    type Src = { col: number; row: number; symbolId: number; multiplier: number };
+    const sources: Src[] = [];
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            const cell = next.board.resolved[c][r];
+            if (cell.symbolId === null || !cell.entityRef) continue;
+            const ent = next.board.entities[cell.entityRef];
+            if (!ent || ent.kind !== 'multi') continue;
+            sources.push({
+                col: c,
+                row: r,
+                symbolId: cell.symbolId,
+                multiplier: Math.max(1, ent.multiplier ?? 1),
+            });
+        }
+    }
+    if (!sources.length) return null;
+
+    // 先快照空位，避免同一轮扩散互相占格
+    const empty = new Set<string>();
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            if (next.board.resolved[c][r].symbolId === null) empty.add(`${c},${r}`);
+        }
+    }
+
+    let placed = 0;
+    const stamp = Date.now().toString(36);
+    for (const src of sources) {
+        for (const [dc, dr] of dirs) {
+            const tc = src.col + dc;
+            const tr = src.row + dr;
+            const key = `${tc},${tr}`;
+            if (!empty.has(key)) continue;
+            if (tc < 0 || tc >= cols || tr < 0 || tr >= visibleRows[tc]) continue;
+            empty.delete(key);
+            const id = `m_exp_${tc}_${tr}_${stamp}_${placed}`;
+            next.board.entities[id] = {
+                id,
+                symbolId: src.symbolId,
+                anchor: { col: tc, row: tr },
+                footprint: [[0, 0]],
+                kind: 'multi',
+                multiplier: src.multiplier,
+                meta: { expandFrom: { col: src.col, row: src.row } },
+            };
+            next.board.resolved[tc][tr] = { symbolId: src.symbolId, entityRef: id };
+            placed++;
+        }
+    }
+    if (!placed) return null;
+
+    const ext = readFrameExt(next);
+    writeFrameExt(next, {
+        cascadeIndex: ext?.cascadeIndex ?? 0,
+        frameIndex: (ext?.frameIndex ?? 0) + 1,
+        frameKind: 'expandPost',
+        templateId: 'multiExpand',
+    });
+    return next;
+}
+
 export function makeEmptyDoc(id: string, name: string, cols: number, rows: number): EditorDoc {
     return {
         docVersion: 1,

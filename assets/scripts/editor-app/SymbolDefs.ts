@@ -7,7 +7,7 @@
  * （缺省 152×128，不逐符号配置），运行时按 board 格子大小整体等比缩放。
  */
 
-import { _decorator, AudioClip, Node, Prefab, SpriteFrame, UITransform, Vec2, sp } from 'cc';
+import { _decorator, AudioClip, BitmapFont, Node, Prefab, SpriteFrame, UITransform, Vec2, ccenum, sp } from 'cc';
 import { EnterFx } from './symbolFx';
 
 const { ccclass, property } = _decorator;
@@ -15,6 +15,21 @@ const { ccclass, property } = _decorator;
 /** 格子设计尺寸（格子级特效的缩放基准） */
 export const DESIGN_CELL_W = 152;
 export const DESIGN_CELL_H = 128;
+
+/**
+ * 符号业务分类（同库分型，不另起符号库）。
+ * - normal：常规 enter / win / vanish + 格子特效
+ * - multi：倍率球；不走中奖高亮；数字读 entity.multiplier，字体用 digitFont
+ */
+export enum SymbolKind {
+    normal = 0,
+    multi = 1,
+}
+ccenum(SymbolKind);
+
+export function isMultiEntry(entry: SymbolEntry | null | undefined): boolean {
+    return !!entry && entry.kind === SymbolKind.multi;
+}
 
 @ccclass('CellFxDef')
 export class CellFxDef {
@@ -57,6 +72,9 @@ export class SymbolEntry {
     @property({ tooltip: '显示名（刷子面板 / 预览墙标注）' })
     name = '';
 
+    @property({ type: SymbolKind, tooltip: '符号分类：normal=常规；multi=倍率球（不走中奖高亮，可挂倍数字体）' })
+    kind = SymbolKind.normal;
+
     @property({ type: SpriteFrame, tooltip: '静态纹理：无 spine 时的显示，也是刷子面板图标' })
     texture: SpriteFrame | null = null;
 
@@ -93,6 +111,12 @@ export class SymbolEntry {
     @property({ tooltip: '缩放微调（设计尺寸自适应之上再乘）' })
     scaleMul = 1;
 
+    @property({
+        type: BitmapFont,
+        tooltip: '倍率球数字位图字（仅 kind=multi）；空 = 用 SymbolLibrary.multiDigitFont',
+    })
+    digitFont: BitmapFont | null = null;
+
     @property({ type: CellFxDef, tooltip: '本符号专用中奖格子特效；spine 留空 = 用全局' })
     winCellFx = new CellFxDef();
 
@@ -116,6 +140,14 @@ export interface SymbolProvider {
     /** 解析后的中奖格子特效（条目覆盖 > 全局；无则 null） */
     winCellFxFor(id: number): CellFxDef | null;
     vanishCellFxFor(id: number): CellFxDef | null;
+    /** 倍率球位图字（条目覆盖 > 库默认；非 multi 返回 null） */
+    digitFontFor?(id: number): BitmapFont | null;
+    /** 扩散帧：split 粒子飞弹 + split_B 落地 */
+    expandSplitFx?: {
+        splitParticle: SpriteFrame | null;
+        splitB: sp.SkeletonData | null;
+        splitBAnim: string;
+    };
 }
 
 /**

@@ -14,7 +14,7 @@
       },
       "promoted": true,
       "createdAt": "2026-07-07T05:43:20.622Z",
-      "updatedAt": "2026-07-08T03:59:50.983Z",
+      "updatedAt": "2026-07-08T05:57:27.590Z",
       "useCount": 21,
       "toolName": "cocosmcp_r_preview_refresh_scripts"
     },
@@ -37,7 +37,7 @@
       },
       "promoted": true,
       "createdAt": "2026-07-07T05:43:36.024Z",
-      "updatedAt": "2026-07-08T04:00:16.303Z",
+      "updatedAt": "2026-07-08T05:57:27.592Z",
       "useCount": 13,
       "toolName": "cocosmcp_r_tail_creator_console"
     },
@@ -47,7 +47,7 @@
       "params": {},
       "promoted": true,
       "createdAt": "2026-07-07T08:58:46.157Z",
-      "updatedAt": "2026-07-07T09:31:41.385Z",
+      "updatedAt": "2026-07-08T05:57:27.594Z",
       "useCount": 2,
       "toolName": "cocosmcp_r_sync_symbol_catalog"
     }

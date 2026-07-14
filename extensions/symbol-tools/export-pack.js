@@ -22,12 +22,14 @@ const RUNTIME_SCRIPTS = [
     'assets/scripts/editor-app/SymbolView.ts',
     'assets/scripts/editor-app/SymbolTemplate.ts',
     'assets/scripts/editor-app/SymbolCatalog.ts',
+    'assets/scripts/editor-app/GamePack.ts',
     'assets/scripts/editor-app/symbolFx.ts',
     'assets/scripts/editor-app/sfx.ts',
     'assets/scripts/editor-app/boardEvents.ts',
     'assets/scripts/editor-app/animTemplates.ts',
     'assets/scripts/editor-app/BoardView.ts',
     'assets/scripts/editor-app/BoardDirector.ts',
+    'assets/scripts/editor-app/BoardStage.ts',
 ];
 /** 运行时脚本：整目录（IAnim 框架、SPIR 文档模型与 schema） */
 const RUNTIME_DIRS = [
@@ -70,8 +72,34 @@ async function exportPack() {
     }
 
     // --- 依赖闭包（从库 prefab 出发扫 __uuid__，递归 prefab） ---
-    const rootPrefab = path.join(projectRoot, 'assets/resources/symbol-library.prefab');
-    if (!fs.existsSync(rootPrefab)) throw new Error('assets/resources/symbol-library.prefab 不存在，先在 Creator 里配置符号库');
+    // 优先：环境变量 SYMBOL_GAME_ID；否则扫 games/*/symbol-library.prefab；兼容旧根路径
+    const gameId = process.env.SYMBOL_GAME_ID || '';
+    const gamesRoot = path.join(projectRoot, 'assets/resources/games');
+    let rootPrefab = '';
+    if (gameId) {
+        rootPrefab = path.join(gamesRoot, gameId, 'symbol-library.prefab');
+    } else {
+        const legacy = path.join(projectRoot, 'assets/resources/symbol-library.prefab');
+        if (fs.existsSync(legacy)) {
+            rootPrefab = legacy;
+        } else if (fs.existsSync(gamesRoot)) {
+            const dirs = fs.readdirSync(gamesRoot, { withFileTypes: true })
+                .filter((d) => d.isDirectory())
+                .map((d) => d.name)
+                .sort();
+            for (const id of dirs) {
+                const cand = path.join(gamesRoot, id, 'symbol-library.prefab');
+                if (fs.existsSync(cand)) {
+                    rootPrefab = cand;
+                    break;
+                }
+            }
+        }
+    }
+    if (!rootPrefab || !fs.existsSync(rootPrefab)) {
+        throw new Error('找不到 symbol-library.prefab（期望 assets/resources/games/<gameId>/ 或旧根路径）');
+    }
+    console.log(`[export-pack] library = ${path.relative(projectRoot, rootPrefab)}`);
 
     const visitedUuids = new Set();
     const queue = [rootPrefab];
@@ -116,7 +144,7 @@ async function exportPack() {
             '',
             '1. 把本包内 `assets/` 目录整体合并进目标 Cocos 工程的 `assets/`（保留 .meta）。',
             '2. Creator 打开目标工程等待导入完成。',
-            '3. 运行时 `resources.load("symbol-library", Prefab)` 拿到库，',
+            '3. 运行时 `resources.load("games/<gameId>/symbol-library", Prefab)` 拿到库，',
             '   读根节点 `SymbolLibrary` 组件即得全部符号配置（直接资源引用）。',
             '4. 渲染/动画参考 `SymbolView`（内容形态 prefab > spine > 纹理，',
             '   enter/win/vanish 钩子 + 格子特效 CellFxDef）。',

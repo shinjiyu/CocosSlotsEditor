@@ -1,17 +1,24 @@
 /**
  * SymbolLibrary — 符号库组件（配置全在 Creator 原生 Inspector 完成）。
  *
- * 用法：双击 assets/resources/symbol-library.prefab 进入编辑，
+ * 用法：双击 assets/resources/games/<gameId>/symbol-library.prefab 进入编辑，
  * 在 Inspector 的 symbols 数组上 +/− 条目、拖入纹理/spine/prefab、填动画名。
  * 编辑时场景视图会自动铺出「预览墙」：每个符号一格，spine 循环播 idle，
  * 改字段立即重建（所见即所得）。previewEnter/Win/Vanish 勾一下播对应动画。
  *
- * 运行时由 SymbolCatalog.load() 加载本 prefab 读取数据，本组件不进场景。
+ * 运行时由 SymbolCatalog.load(libraryPath) 加载本 prefab 读取数据，本组件不进场景。
  */
 
-import { _decorator, CCObject, Color, Component, Graphics, Label, Node, RenderRoot2D, UITransform, sp } from 'cc';
+import { _decorator, BitmapFont, CCObject, Color, Component, Graphics, Label, Node, RenderRoot2D, SpriteFrame, UITransform, sp } from 'cc';
 import { EDITOR } from 'cc/env';
-import { CellFxDef, DESIGN_CELL_H, DESIGN_CELL_W, SymbolEntry, spawnCellFx } from './SymbolDefs';
+import {
+    CellFxDef,
+    DESIGN_CELL_H,
+    DESIGN_CELL_W,
+    SymbolEntry,
+    isMultiEntry,
+    spawnCellFx,
+} from './SymbolDefs';
 import type { SymbolProvider } from './SymbolDefs';
 import { SymbolView } from './SymbolView';
 
@@ -39,6 +46,27 @@ export class SymbolLibrary extends Component implements SymbolProvider {
     @property({ type: CellFxDef, tooltip: '全局消除格子特效（postClear 帧与符号 vanishAnim 并行播）' })
     vanishCellFx = new CellFxDef();
 
+    @property({
+        type: BitmapFont,
+        tooltip: '倍率球默认位图字（kind=multi 且条目 digitFont 为空时用）',
+    })
+    multiDigitFont: BitmapFont | null = null;
+
+    @property({
+        type: SpriteFrame,
+        tooltip: '扩散拖尾粒子贴图（原版 timesParticle / BlueTimesMoving，不是 split_A spine）',
+    })
+    expandSplitParticle: SpriteFrame | null = null;
+
+    @property({
+        type: sp.SkeletonData,
+        tooltip: '扩散落地 spine（split_B）：粒子到达后播放，再露出倍率球',
+    })
+    expandSplitB: sp.SkeletonData | null = null;
+
+    @property({ tooltip: '落地动画名' })
+    expandSplitBAnim = 'split_B';
+
     // ------------------------------------------------------------------
     // SymbolProvider
     // ------------------------------------------------------------------
@@ -56,9 +84,26 @@ export class SymbolLibrary extends Component implements SymbolProvider {
     }
 
     winCellFxFor(id: number): CellFxDef | null {
+        // 倍率球不走中奖高亮格子特效
+        if (isMultiEntry(this.getEntry(id))) return null;
         const override = this.getEntry(id)?.winCellFx;
         if (override?.valid) return override;
         return this.winCellFx.valid ? this.winCellFx : null;
+    }
+
+    /** 解析倍率球位图字：条目覆盖 > 库默认 */
+    digitFontFor(id: number): BitmapFont | null {
+        const entry = this.getEntry(id);
+        if (!isMultiEntry(entry)) return null;
+        return entry!.digitFont ?? this.multiDigitFont;
+    }
+
+    get expandSplitFx() {
+        return {
+            splitParticle: this.expandSplitParticle,
+            splitB: this.expandSplitB,
+            splitBAnim: this.expandSplitBAnim || 'split_B',
+        };
     }
 
     vanishCellFxFor(id: number): CellFxDef | null {
@@ -157,19 +202,28 @@ export class SymbolLibrary extends Component implements SymbolProvider {
     private signature(): string {
         const parts = this.symbols.map((e) =>
             [
-                e.id, e.name,
+                e.id, e.name, e.kind,
                 e.texture?.uuid ?? '', e.spine?.uuid ?? '', e.prefab?.uuid ?? '',
                 e.idleAnim, e.enterAnim, e.winAnim, e.vanishAnim,
-                e.enterFx, e.scaleMul,
+                e.enterFx, e.scaleMul, e.digitFont?.uuid ?? '',
                 fxSig(e.winCellFx), fxSig(e.vanishCellFx),
             ].join(','),
         );
-        parts.push(fxSig(this.winCellFx), fxSig(this.vanishCellFx), `${this.symbolWidth}x${this.symbolHeight}`);
+        parts.push(
+            fxSig(this.winCellFx),
+            fxSig(this.vanishCellFx),
+            this.multiDigitFont?.uuid ?? '',
+            `${this.symbolWidth}x${this.symbolHeight}`,
+        );
         return parts.join('|');
     }
 
     private destroyPreview(): void {
-        this.node.getChildByName(PREVIEW_NODE)?.destroy();
+        // 只 destroy，不要在 onDisable/激活切换中 removeFromParent（会报 hierarchy while deactivating）
+        for (const child of [...this.node.children]) {
+            if (child.name !== PREVIEW_NODE) continue;
+            child.destroy();
+        }
         this.wall = null;
         this.wallViews.clear();
     }
@@ -193,13 +247,18 @@ export class SymbolLibrary extends Component implements SymbolProvider {
             const row = Math.floor(i / PREVIEW_PER_ROW);
             const cell = new Node(`preview_${entry.id}`);
             cell.addComponent(UITransform).setContentSize(cw, ch);
-            cell.setPosition(col * stepX, -row * stepY, 0);
+            // 整体偏移，避免首格落在世界原点与 Scene 轴向十字交叉叠画
+            cell.setPosition(col * stepX + cw * 0.5, -row * stepY - ch * 0.5, 0);
 
-            const g = cell.addComponent(Graphics);
+            // Graphics 单独垫底层，避免与 Sprite 同节点时偶发遮挡/批处理异常
+            const frameNode = new Node('frame');
+            frameNode.addComponent(UITransform).setContentSize(cw, ch);
+            const g = frameNode.addComponent(Graphics);
             g.lineWidth = 2;
             g.strokeColor = new Color(120, 200, 255, 140);
             g.rect(-cw / 2, -ch / 2, cw, ch);
             g.stroke();
+            cell.addChild(frameNode);
 
             const view = cell.addComponent(SymbolView);
             view.setup(this, cw, ch, 1);
@@ -229,18 +288,27 @@ export class SymbolLibrary extends Component implements SymbolProvider {
             const view = this.wallViews.get(entry.id);
             const cell = view?.node;
             if (!cell?.isValid) continue;
-            // spine 动画
+            // spine 动画（临时挂载型符号：演出时挂骨骼，播完拆除还原静态纹理）
             const animName =
                 kind === 'enter' ? entry.enterAnim : kind === 'win' ? entry.winAnim : entry.vanishAnim;
-            const sk = view!.spineComp;
+            const sk = animName ? view!.mountSpine() : null;
             if (sk && animName) {
-                if (entry.idleAnim && entry.idleAnim !== animName) {
+                const persistent = !view!.isTempSpine;
+                if (persistent && entry.idleAnim && entry.idleAnim !== animName) {
                     // 与运行时 SymbolView 一致：动画切换做 crossfade，避免硬切 pop
                     sk.setMix(entry.idleAnim, animName, 0.2);
                     sk.setMix(animName, entry.idleAnim, 0.2);
                 }
                 sk.setAnimation(0, animName, false);
-                if (entry.idleAnim) sk.addAnimation(0, entry.idleAnim, true);
+                if (persistent && entry.idleAnim) {
+                    sk.addAnimation(0, entry.idleAnim, true);
+                } else if (!persistent) {
+                    const v = view!;
+                    sk.setCompleteListener(() => {
+                        sk.setCompleteListener(null!);
+                        v.unmountTempSpine();
+                    });
+                }
             }
             // 格子特效
             const fx = kind === 'win' ? this.winCellFxFor(entry.id) : kind === 'vanish' ? this.vanishCellFxFor(entry.id) : null;

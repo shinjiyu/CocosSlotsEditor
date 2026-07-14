@@ -84,20 +84,96 @@ export class MoveStateCommand implements EditorCommand {
 /** 改 resolved 某格 symbolId（Editor 网格点击的核心命令） */
 export class SetResolvedCellCommand implements EditorCommand {
     readonly label = 'setResolvedCell';
-    private prev: number | null = null;
+    private prevSymbolId: number | null = null;
+    private prevEntityRef: string | null = null;
+    private prevEntityJson: string | null = null;
+    private createdEntityId: string | null = null;
+
     constructor(
         private stateIndex: number,
         private col: number,
         private row: number,
         private symbolId: number | null,
+        /** 刷 multi 球时传入：写入 1×1 entity + multiplier */
+        private multi?: { multiplier: number } | null,
     ) {}
+
     apply(doc: EditorDoc): void {
-        const cell = doc.states[this.stateIndex].board.resolved[this.col][this.row];
-        this.prev = cell.symbolId;
+        const board = doc.states[this.stateIndex].board;
+        const cell = board.resolved[this.col][this.row];
+        this.prevSymbolId = cell.symbolId;
+        this.prevEntityRef = cell.entityRef;
+        this.prevEntityJson = null;
+        this.createdEntityId = null;
+
+        if (cell.entityRef) {
+            const ent = board.entities[cell.entityRef];
+            if (ent) this.prevEntityJson = JSON.stringify(ent);
+            delete board.entities[cell.entityRef];
+            cell.entityRef = null;
+        }
+
         cell.symbolId = this.symbolId;
+
+        if (this.symbolId !== null && this.multi) {
+            const id = `m_${this.col}_${this.row}_${this.stateIndex}_${Date.now().toString(36)}`;
+            board.entities[id] = {
+                id,
+                symbolId: this.symbolId,
+                anchor: { col: this.col, row: this.row },
+                footprint: [[0, 0]],
+                kind: 'multi',
+                multiplier: Math.max(1, this.multi.multiplier),
+            };
+            cell.entityRef = id;
+            this.createdEntityId = id;
+        }
     }
+
     revert(doc: EditorDoc): void {
-        doc.states[this.stateIndex].board.resolved[this.col][this.row].symbolId = this.prev;
+        const board = doc.states[this.stateIndex].board;
+        const cell = board.resolved[this.col][this.row];
+        if (this.createdEntityId) {
+            delete board.entities[this.createdEntityId];
+            cell.entityRef = null;
+        }
+        cell.symbolId = this.prevSymbolId;
+        cell.entityRef = this.prevEntityRef;
+        if (this.prevEntityRef && this.prevEntityJson) {
+            board.entities[this.prevEntityRef] = JSON.parse(this.prevEntityJson);
+        }
+    }
+}
+
+/** 修改某格关联 entity 的 multiplier（仅 multi 球） */
+export class SetEntityMultiplierCommand implements EditorCommand {
+    readonly label = 'setEntityMultiplier';
+    private prev: number | undefined = undefined;
+    private entityId: string | null = null;
+
+    constructor(
+        private stateIndex: number,
+        private col: number,
+        private row: number,
+        private next: number,
+    ) {}
+
+    apply(doc: EditorDoc): void {
+        const board = doc.states[this.stateIndex].board;
+        const cell = board.resolved[this.col]?.[this.row];
+        const id = cell?.entityRef ?? null;
+        this.entityId = id;
+        if (!id || !board.entities[id]) return;
+        this.prev = board.entities[id].multiplier;
+        board.entities[id].multiplier = Math.max(1, this.next);
+    }
+
+    revert(doc: EditorDoc): void {
+        if (!this.entityId) return;
+        const ent = doc.states[this.stateIndex].board.entities[this.entityId];
+        if (!ent) return;
+        if (this.prev === undefined) delete ent.multiplier;
+        else ent.multiplier = this.prev;
     }
 }
 

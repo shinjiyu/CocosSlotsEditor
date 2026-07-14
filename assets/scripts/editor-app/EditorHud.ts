@@ -10,6 +10,7 @@ import {
     Component,
     Node,
     Label,
+    EditBox,
     Sprite,
     SpriteFrame,
     UITransform,
@@ -42,8 +43,16 @@ export interface HudCallbacks {
     onPlayCurrentTransition(): void;
     /** 基于当前帧自动生成压缩后的 compact 帧并插到后面 */
     onGenerateCompactFrame(): void;
+    /** 基于当前帧自动生成倍率球扩散 expandPost 帧 */
+    onGenerateExpandFrame(): void;
     /** 盘面列距/行距调整 */
     onAdjustGap(axis: 'col' | 'row', dir: 1 | -1): void;
+    /** 切换游戏符号包（dir=±1 循环） */
+    onCycleGame(dir: 1 | -1): void;
+    /** 选中格为倍率球时调整 multiplier */
+    onAdjustMultiplier(dir: 1 | -1): void;
+    /** 选中格倍率直接设值（输入框） */
+    onSetMultiplier(value: number): void;
 }
 
 /** Main 每次切帧/改动后喂给 HUD 的动画分区数据 */
@@ -74,15 +83,27 @@ export class EditorHud extends Component {
     private animSectionTop = 0;
     private colGapLabel: Label | null = null;
     private rowGapLabel: Label | null = null;
+    private sizeInfoLabel: Label | null = null;
+    private gameLabel: Label | null = null;
+    private brushRoot: Node | null = null;
+    private inspectorPanel: Node | null = null;
+    /** 刷子区顶部 Y（重建刷子时复用） */
+    private brushSectionTop = 0;
+    /** 动画区标题节点（刷子高度变化时需下移） */
+    private animTitleNode: Node | null = null;
+    private multiRow: Node | null = null;
+    private multiValueEdit: EditBox | null = null;
+    /** 避免 setMultiplierEditor 回写时触发 editing 回调 */
+    private multiEditSilent = false;
 
     /** 盘面区中心（给 Main 摆 BoardView 用） */
     static readonly BOARD_CENTER = new Vec3(-(PANEL_W / 2) - 10, -10, 0);
 
-    init(callbacks: HudCallbacks, catalog: SymbolCatalog): void {
+    init(callbacks: HudCallbacks, catalog: SymbolCatalog, gameLabel = ''): void {
         this.callbacks = callbacks;
         this.buildToolbar();
         this.buildFrameNav();
-        this.buildInspector(catalog);
+        this.buildInspector(catalog, gameLabel);
     }
 
     setStatus(text: string): void {
@@ -97,10 +118,60 @@ export class EditorHud extends Component {
         if (this.cellInfoLabel) this.cellInfoLabel.string = text;
     }
 
+    /** 更新当前游戏包显示 */
+    setGameInfo(text: string): void {
+        if (this.gameLabel) this.gameLabel.string = text;
+    }
+
+    /**
+     * 选中格倍率编辑条。
+     * value=null → 隐藏（非 multi / 未选中）；否则显示数字输入与 −/+。
+     */
+    setMultiplierEditor(value: number | null): void {
+        if (!this.multiRow) return;
+        if (value === null) {
+            this.multiRow.active = false;
+            return;
+        }
+        this.multiRow.active = true;
+        if (this.multiValueEdit) {
+            this.multiEditSilent = true;
+            this.multiValueEdit.string = String(value);
+            this.multiEditSilent = false;
+        }
+    }
+
+    /** 换游戏包后重建刷子面板 */
+    rebuildBrushes(catalog: SymbolCatalog): void {
+        if (!this.inspectorPanel || !this.callbacks) return;
+        this.brushHighlights.clear();
+        if (this.brushRoot?.isValid) this.brushRoot.destroy();
+        this.brushRoot = null;
+
+        const { root, height } = this.makeBrushGrid(catalog, this.callbacks);
+        root.setPosition(0, this.brushSectionTop, 0);
+        this.inspectorPanel.addChild(root);
+        this.brushRoot = root;
+
+        // 动画区紧跟刷子下方
+        const animTop = this.brushSectionTop - height - 18;
+        this.animSectionTop = animTop - 28;
+        if (this.animTitleNode?.isValid) this.animTitleNode.setPosition(0, animTop, 0);
+        if (this.animSectionRoot?.isValid) {
+            // setAnimSection 会按 animSectionTop 布局；先清掉旧内容高度差
+            this.animSectionRoot.removeAllChildren();
+        }
+    }
+
     /** 更新盘面间距显示 */
     setGapInfo(colGap: number, rowGap: number): void {
         if (this.colGapLabel) this.colGapLabel.string = String(colGap);
         if (this.rowGapLabel) this.rowGapLabel.string = String(rowGap);
+    }
+
+    /** 更新尺寸显示（格子尺寸 / 当前 symbol 实际渲染尺寸） */
+    setSizeInfo(text: string): void {
+        if (this.sizeInfoLabel) this.sizeInfoLabel.string = text;
     }
 
     /** 高亮当前刷子槽位；undefined = 全部取消 */
@@ -164,12 +235,13 @@ export class EditorHud extends Component {
     // 右侧常驻 Inspector
     // ------------------------------------------------------------------
 
-    private buildInspector(catalog: SymbolCatalog): void {
+    private buildInspector(catalog: SymbolCatalog, gameLabel: string): void {
         const cb = this.callbacks!;
         const panel = new Node('Inspector');
         panel.addComponent(UITransform);
         const px = DESIGN_W / 2 - PANEL_W / 2;
         panel.setPosition(px, 0, 0);
+        this.inspectorPanel = panel;
 
         // 面板背景
         const bg = new Node('panel_bg');
@@ -193,19 +265,175 @@ export class EditorHud extends Component {
         this.frameInfoLabel = this.addInfoLabel(panel, '帧 -', cursorY);
         cursorY -= 30;
         this.cellInfoLabel = this.addInfoLabel(panel, '未选刷子', cursorY);
-        cursorY -= 40;
+        cursorY -= 36;
+
+        // — 选中格倍率（仅 multi 球显示）—
+        cursorY = this.buildMultiplierRow(panel, cursorY);
+
+        // — 游戏包切换 —
+        cursorY = this.addSectionTitle(panel, '游戏包 (gameId)', cursorY);
+        cursorY = this.buildGameRow(panel, cursorY, gameLabel);
 
         // — 盘面间距（列距 / 行距，一行两组） —
         cursorY = this.buildGapRow(panel, cursorY);
 
+        // — 尺寸信息（格子 / 当前 symbol 实际渲染尺寸） —
+        this.sizeInfoLabel = this.addInfoLabel(panel, '尺寸 -', cursorY);
+        this.sizeInfoLabel.fontSize = 15;
+        this.sizeInfoLabel.lineHeight = 19;
+        this.sizeInfoLabel.color = new Color(170, 220, 170, 255);
+        cursorY -= 44;
+
         // — symbol 刷子面板 —
         cursorY = this.addSectionTitle(panel, 'Symbol 刷子（选中后在盘面刷）', cursorY);
-        const entries = catalog.all;
+        this.brushSectionTop = cursorY;
+        const { root, height } = this.makeBrushGrid(catalog, cb);
+        root.setPosition(0, cursorY, 0);
+        panel.addChild(root);
+        this.brushRoot = root;
+        cursorY -= height + 18;
+
+        // — 动画分区（内容由 setAnimSection 动态重建） —
+        this.animTitleNode = this.addSectionTitleNode(panel, '动画（当前帧转移）', cursorY);
+        cursorY -= 28;
+        const animRoot = new Node('AnimSection');
+        animRoot.addComponent(UITransform);
+        panel.addChild(animRoot);
+        this.animSectionRoot = animRoot;
+        this.animSectionTop = cursorY;
+
+        this.node.addChild(panel);
+    }
+
+    private buildGameRow(panel: Node, y: number, gameLabel: string): number {
+        const cb = this.callbacks!;
+        const left = -PANEL_W / 2 + 20;
+        panel.addChild(this.makeButton('◀', () => cb.onCycleGame(-1), new Vec3(left + 22, y, 0), 44));
+        panel.addChild(this.makeButton('▶', () => cb.onCycleGame(1), new Vec3(left + PANEL_W - 64, y, 0), 44));
+
+        const n = new Node('game_label');
+        const ui = n.addComponent(UITransform);
+        ui.setContentSize(PANEL_W - 120, 28);
+        const label = n.addComponent(Label);
+        label.string = gameLabel || '-';
+        label.fontSize = 16;
+        label.lineHeight = 20;
+        label.horizontalAlign = Label.HorizontalAlign.CENTER;
+        label.overflow = Label.Overflow.SHRINK;
+        label.color = new Color(255, 230, 160, 255);
+        n.setPosition(0, y, 0);
+        panel.addChild(n);
+        this.gameLabel = label;
+        return y - 40;
+    }
+
+    /** 选中 multi 格时的倍率 − / 输入 / + */
+    private buildMultiplierRow(panel: Node, y: number): number {
+        const cb = this.callbacks!;
+        const row = new Node('multi_row');
+        row.addComponent(UITransform);
+        row.setPosition(0, y, 0);
+        row.active = false;
+
+        const title = new Node('multi_title');
+        const tui = title.addComponent(UITransform);
+        tui.setAnchorPoint(0, 0.5);
+        const tl = title.addComponent(Label);
+        tl.string = '倍率';
+        tl.fontSize = 16;
+        tl.lineHeight = 20;
+        tl.verticalAlign = Label.VerticalAlign.CENTER;
+        tl.color = new Color(170, 185, 235, 255);
+        title.setPosition(-PANEL_W / 2 + 20, 0, 0);
+        row.addChild(title);
+
+        const left = -PANEL_W / 2 + 80;
+        const btnW = 44;
+        const editW = 72;
+        const gap = 8;
+        const minusX = left + btnW / 2;
+        const editX = minusX + btnW / 2 + gap + editW / 2;
+        const plusX = editX + editW / 2 + gap + btnW / 2;
+
+        row.addChild(this.makeButton('−', () => cb.onAdjustMultiplier(-1), new Vec3(minusX, 0, 0), btnW));
+        row.addChild(this.makeButton('＋', () => cb.onAdjustMultiplier(1), new Vec3(plusX, 0, 0), btnW));
+        row.addChild(this.makeMultiplierEdit(editW, new Vec3(editX, 0, 0)));
+
+        panel.addChild(row);
+        this.multiRow = row;
+        return y - 44;
+    }
+
+    private makeMultiplierEdit(width: number, pos: Vec3): Node {
+        const n = new Node('multi_edit');
+        const ui = n.addComponent(UITransform);
+        ui.setContentSize(width, BTN_H);
+
+        const bg = n.addComponent(Graphics);
+        bg.fillColor = new Color(28, 36, 68, 255);
+        bg.strokeColor = new Color(140, 160, 230, 200);
+        bg.lineWidth = 1.5;
+        bg.roundRect(-width / 2, -BTN_H / 2, width, BTN_H, 8);
+        bg.fill();
+        bg.stroke();
+
+        const mkLabel = (name: string, color: Color): Label => {
+            const tn = new Node(name);
+            const tut = tn.addComponent(UITransform);
+            tut.setContentSize(width - 8, BTN_H - 4);
+            const lab = tn.addComponent(Label);
+            lab.fontSize = 20;
+            lab.lineHeight = 24;
+            lab.horizontalAlign = Label.HorizontalAlign.CENTER;
+            lab.verticalAlign = Label.VerticalAlign.CENTER;
+            lab.overflow = Label.Overflow.SHRINK;
+            lab.color = color;
+            n.addChild(tn);
+            return lab;
+        };
+        const textLabel = mkLabel('TEXT_LABEL', new Color(255, 220, 120, 255));
+        const phLabel = mkLabel('PLACEHOLDER_LABEL', new Color(120, 130, 160, 180));
+        phLabel.string = '';
+
+        const eb = n.addComponent(EditBox);
+        eb.textLabel = textLabel;
+        eb.placeholderLabel = phLabel;
+        eb.inputMode = EditBox.InputMode.NUMERIC;
+        eb.inputFlag = EditBox.InputFlag.DEFAULT;
+        eb.returnType = EditBox.KeyboardReturnType.DONE;
+        eb.maxLength = 3;
+        eb.string = '2';
+        n.setPosition(pos);
+
+        const commit = (): void => {
+            if (this.multiEditSilent || !this.callbacks) return;
+            const raw = (eb.string || '').replace(/[^\d]/g, '');
+            const nVal = Math.max(1, Math.min(999, parseInt(raw || '1', 10) || 1));
+            this.multiEditSilent = true;
+            eb.string = String(nVal);
+            this.multiEditSilent = false;
+            this.callbacks.onSetMultiplier(nVal);
+        };
+        n.on(EditBox.EventType.EDITING_DID_ENDED, commit);
+        n.on(EditBox.EventType.EDITING_RETURN, commit);
+
+        this.multiValueEdit = eb;
+        return n;
+    }
+
+    /** 刷子网格；root 本地原点在区顶部中线，子项向下排布 */
+    private makeBrushGrid(
+        catalog: SymbolCatalog,
+        cb: HudCallbacks,
+    ): { root: Node; height: number } {
+        const root = new Node('BrushGrid');
+        root.addComponent(UITransform);
+
         const cell = 56;
         const gap = 4;
         const perRow = 5;
         const startX = -PANEL_W / 2 + 20 + cell / 2;
-        const all: Array<{ id: number | null; frame: SpriteFrame | null; label: string }> = entries.map(
+        const all: Array<{ id: number | null; frame: SpriteFrame | null; label: string }> = catalog.all.map(
             (e) => ({ id: e.id, frame: catalog.getFrame(e.id), label: e.name }),
         );
         all.push({ id: null, frame: null, label: '橡皮' });
@@ -216,7 +444,7 @@ export class EditorHud extends Component {
             const n = new Node(`pick_${item.label}`);
             const ui = n.addComponent(UITransform);
             ui.setContentSize(cell, cell);
-            n.setPosition(startX + col * (cell + gap), cursorY - cell / 2 - row * (cell + gap), 0);
+            n.setPosition(startX + col * (cell + gap), -cell / 2 - row * (cell + gap), 0);
 
             const slotG = n.addComponent(Graphics);
             slotG.fillColor = new Color(40, 46, 72, 255);
@@ -243,7 +471,6 @@ export class EditorHud extends Component {
                 n.addChild(t);
             }
 
-            // 选中高亮框（默认隐藏）
             const hl = new Node('brush_hl');
             hl.addComponent(UITransform);
             const hg = hl.addComponent(Graphics);
@@ -256,22 +483,27 @@ export class EditorHud extends Component {
             this.brushHighlights.set(item.id === null ? 'eraser' : String(item.id), hl);
 
             n.on(Node.EventType.TOUCH_END, () => cb.onPickBrush(item.id));
-            panel.addChild(n);
+            root.addChild(n);
         });
 
-        // symbol 面板占用的高度
         const symbolRows = Math.ceil(all.length / perRow);
-        cursorY -= symbolRows * (cell + gap) + 18;
+        const height = symbolRows * (cell + gap);
+        return { root, height };
+    }
 
-        // — 动画分区（内容由 setAnimSection 动态重建） —
-        cursorY = this.addSectionTitle(panel, '动画（当前帧转移）', cursorY);
-        const animRoot = new Node('AnimSection');
-        animRoot.addComponent(UITransform);
-        panel.addChild(animRoot);
-        this.animSectionRoot = animRoot;
-        this.animSectionTop = cursorY;
-
-        this.node.addChild(panel);
+    /** 与 addSectionTitle 相同，但返回节点以便换包时移动 */
+    private addSectionTitleNode(parent: Node, text: string, y: number): Node {
+        const n = new Node(`sec_${text}`);
+        const ui = n.addComponent(UITransform);
+        ui.setAnchorPoint(0, 0.5);
+        const label = n.addComponent(Label);
+        label.string = text;
+        label.fontSize = 16;
+        label.lineHeight = 20;
+        label.color = new Color(140, 160, 220, 255);
+        n.setPosition(-PANEL_W / 2 + 16, y, 0);
+        parent.addChild(n);
+        return n;
     }
 
     /** 一行放两组「标签 值 − ＋」：列距 与 行距 */
@@ -390,6 +622,9 @@ export class EditorHud extends Component {
         }
         root.addChild(
             this.makeButton('⤵ 生成compact帧', () => cb.onGenerateCompactFrame(), new Vec3(85, y - 12, 0), 150),
+        );
+        root.addChild(
+            this.makeButton('⤵ 生成扩散帧', () => cb.onGenerateExpandFrame(), new Vec3(85, y - 56, 0), 150),
         );
     }
 

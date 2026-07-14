@@ -19,6 +19,8 @@ export class BoardView extends Component {
     @property rowGap = 2;
     /** 格内符号相对格子的填充比例 */
     @property cellFill = 0.9;
+    /** 是否绘制网格调试背景（编辑器用；业务盘面一般关闭） */
+    @property showGridBg = true;
 
     /** 按下/拖入新格回调（刷子绘制）；由 BoardEditorMain 注入 */
     onCellPress: ((col: number, row: number) => void) | null = null;
@@ -32,6 +34,11 @@ export class BoardView extends Component {
 
     setCatalog(catalog: SymbolProvider): void {
         this.catalog = catalog;
+    }
+
+    /** 符号库（模板读扩散 spine 等） */
+    getCatalog(): SymbolProvider | null {
+        return this.catalog;
     }
 
     getCellNode(col: number, row: number): Node | null {
@@ -49,7 +56,9 @@ export class BoardView extends Component {
         this.rebuildGrid(cols, rows);
         for (let c = 0; c < cols; c++) {
             for (let r = 0; r < visibleRows[c]; r++) {
-                this.applyCell(c, r, state.board.resolved[c][r].symbolId);
+                const cell = state.board.resolved[c][r];
+                const ent = cell.entityRef ? state.board.entities[cell.entityRef] : null;
+                this.applyCell(c, r, cell.symbolId, ent?.multiplier ?? null);
             }
         }
         if (this.selected) this.setSelected(this.selected.col, this.selected.row);
@@ -82,8 +91,15 @@ export class BoardView extends Component {
         this.selectionNode.setSiblingIndex(this.node.children.length - 1);
     }
 
-    applyCell(col: number, row: number, symbolId: number | null): void {
-        this.symbolViews[col]?.[row]?.setSymbol(symbolId);
+    getSelected(): { col: number; row: number } | null {
+        return this.selected ? { ...this.selected } : null;
+    }
+
+    applyCell(col: number, row: number, symbolId: number | null, multiplier: number | null = null): void {
+        const view = this.symbolViews[col]?.[row];
+        if (!view) return;
+        view.setSymbol(symbolId);
+        view.setMultiplier(multiplier);
     }
 
     boardSize(cols: number, rows: number): { w: number; h: number } {
@@ -123,7 +139,7 @@ export class BoardView extends Component {
         this.currentCols = cols;
         this.currentRows = rows;
         this.ensureTouch(cols, rows);
-        this.drawGridBg(cols, rows);
+        if (this.showGridBg) this.drawGridBg(cols, rows);
         for (let c = 0; c < cols; c++) {
             const colNodes: Node[] = [];
             const colViews: SymbolView[] = [];

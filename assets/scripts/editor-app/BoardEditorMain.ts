@@ -10,9 +10,11 @@ import {
     validateDoc,
     readFrameExt,
     makeCompactedState,
+    makeExpandedState,
     AddStateCommand,
     RemoveStateCommand,
     SetResolvedCellCommand,
+    SetEntityMultiplierCommand,
     PatchFrameExtCommand,
     CompositeCommand,
     CommandHistory,
@@ -25,8 +27,21 @@ import type { AnimSectionModel } from './EditorHud';
 import { PersistenceService } from './PersistenceService';
 import { BoardDirector } from './BoardDirector';
 import { allowedTemplateIds, isTemplateAllowed, resolveTemplateForState } from './animTemplates';
+import {
+    GAME_PACKS,
+    cycleGameId,
+    getGamePack,
+    loadStoredGameId,
+    storeGameId,
+} from './GamePack';
+import type { GamePackDef } from './GamePack';
+import { isMultiEntry } from './SymbolDefs';
+import { bootRemoteConsole } from '../debug/remoteConsoleBoot';
 
 const { ccclass, property } = _decorator;
+
+/** 刷 multi 球时的默认倍率 */
+const DEFAULT_MULTI_VALUE = 2;
 
 /** 编辑器 UI 循环用的常用 frameKind 子集（数据层仍支持完整 IR_FRAME_KINDS） */
 const EDITOR_FRAME_KINDS: IrFrameKind[] = [
@@ -35,6 +50,8 @@ const EDITOR_FRAME_KINDS: IrFrameKind[] = [
     'highlight',
     'postClear',
     'compact',
+    'expandPre',
+    'expandPost',
     'spinEnd',
 ];
 
@@ -56,10 +73,14 @@ export class BoardEditorMain extends Component {
     /** 进行中的一笔（touch 期间累积，end 时合成一次 undo） */
     private stroke: EditorCommand[] = [];
     private disposeHostBridge: (() => void) | null = null;
+    private gamePack: GamePackDef = getGamePack(loadStoredGameId());
+    private switchingGame = false;
 
     async start(): Promise<void> {
+        bootRemoteConsole();
         try {
-            await this.catalog.load();
+            this.gamePack = getGamePack(loadStoredGameId());
+            await this.catalog.load(this.gamePack.libraryPath);
             this.doc = this.persistence.loadAutosave(this.docId);
             let source = 'localStorage 自动存档';
             if (!this.doc) {
@@ -77,7 +98,9 @@ export class BoardEditorMain extends Component {
             this.buildLayout();
             this.showState(0);
             this.installAiwsBridge();
-            console.log(`[BoardEditorMain] ready, states=${this.doc.states.length}, source=${source}`);
+            console.log(
+                `[BoardEditorMain] ready, game=${this.gamePack.id}, states=${this.doc.states.length}, source=${source}`,
+            );
         } catch (e) {
             console.error('[BoardEditorMain] load failed', e);
         }
@@ -184,12 +207,59 @@ export class BoardEditorMain extends Component {
                 onTogglePlayWithPrev: () => this.togglePlayWithPrev(),
                 onPlayCurrentTransition: () => void this.playCurrentTransition(),
                 onGenerateCompactFrame: () => this.generateCompactFrame(),
+                onGenerateExpandFrame: () => this.generateExpandFrame(),
                 onAdjustGap: (axis, dir) => this.adjustGap(axis, dir),
+                onCycleGame: (dir) => void this.cycleGame(dir),
+                onAdjustMultiplier: (dir) => this.adjustMultiplier(dir),
+                onSetMultiplier: (value) => this.setMultiplierValue(value),
             },
             this.catalog,
+            this.formatGameLabel(this.gamePack),
         );
         this.hud.setGapInfo(this.boardView.colGap, this.boardView.rowGap);
         this.refreshSizeInfo(null);
+    }
+
+    private formatGameLabel(pack: GamePackDef): string {
+        const n = GAME_PACKS.length;
+        const i = Math.max(0, GAME_PACKS.findIndex((p) => p.id === pack.id)) + 1;
+        return n > 1 ? `${pack.name}  (${i}/${n})` : pack.name;
+    }
+
+    /** 切换游戏符号包：重载 library、刷子面板与盘面显示 */
+    private async cycleGame(dir: 1 | -1): Promise<void> {
+        if (this.switchingGame || this.director?.isPlaying) return;
+        if (GAME_PACKS.length <= 1) {
+            this.hud?.setStatus(`仅一个游戏包：${this.gamePack.id}`);
+            return;
+        }
+        const next = cycleGameId(this.gamePack.id, dir);
+        if (next.id === this.gamePack.id) return;
+        this.switchingGame = true;
+        this.hud?.setStatus(`切换游戏包 → ${next.id} …`);
+        try {
+            await this.catalog.load(next.libraryPath);
+            this.gamePack = next;
+            storeGameId(next.id);
+            if (this.boardView) {
+                this.boardView.setCatalog(this.catalog);
+                this.boardView.cellW = this.catalog.designW;
+                this.boardView.cellH = this.catalog.designH;
+            }
+            this.brush = undefined;
+            this.hud?.setGameInfo(this.formatGameLabel(next));
+            this.hud?.rebuildBrushes(this.catalog);
+            this.hud?.setBrushHighlight(undefined);
+            this.clearSelection();
+            this.showState(this.currentIndex);
+            this.hud?.setStatus(`游戏包：${next.id}`);
+            console.log(`[BoardEditorMain] game pack → ${next.id} (${next.libraryPath})`);
+        } catch (e) {
+            console.error('[BoardEditorMain] switch game failed', e);
+            this.hud?.setStatus(`切换失败：${next.id}`);
+        } finally {
+            this.switchingGame = false;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -266,6 +336,9 @@ export class BoardEditorMain extends Component {
         this.refreshFrameInfo();
         this.refreshCellInfo();
         this.refreshStatus();
+        const sel = this.boardView.getSelected();
+        if (sel) this.refreshSelectedCellUi(sel.col, sel.row);
+        else this.hud?.setMultiplierEditor(null);
     }
 
     private refreshStatus(): void {
@@ -388,6 +461,20 @@ export class BoardEditorMain extends Component {
         this.showState(this.currentIndex + 1);
     }
 
+    /** 基于当前帧生成倍率球四邻扩散的 expandPost 帧 */
+    private generateExpandFrame(): void {
+        if (!this.doc || !this.history) return;
+        const expanded = makeExpandedState(this.doc.states[this.currentIndex]);
+        if (!expanded) {
+            this.hud?.setStatus('无可扩散的倍率球邻格（需 multi + 四邻空位）');
+            return;
+        }
+        this.history.execute(new AddStateCommand(this.currentIndex + 1, expanded));
+        this.afterEdit();
+        this.showState(this.currentIndex + 1);
+        this.hud?.setStatus('已生成 expandPost 扩散帧 · 点「播本帧转移」预览');
+    }
+
     private async playCurrentTransition(): Promise<void> {
         if (!this.doc || !this.director || this.director.isPlaying) return;
         if (this.currentIndex <= 0) return;
@@ -463,29 +550,87 @@ export class BoardEditorMain extends Component {
 
     private clearSelection(): void {
         this.boardView?.setSelected(null);
+        this.hud?.setMultiplierEditor(null);
     }
 
     private onCellPress(col: number, row: number): void {
         if (!this.doc || !this.history || !this.boardView) return;
         if (this.director?.isPlaying) return;
         if (this.brush === undefined) {
-            // 无刷子：仅高亮查看
+            // 无刷子：仅高亮查看 / 编辑倍率
             this.boardView.setSelected(col, row);
-            const cell = this.doc.states[this.currentIndex].board.resolved[col]?.[row];
-            const name =
-                cell && cell.symbolId !== null
-                    ? this.catalog.getEntry(cell.symbolId)?.name ?? String(cell.symbolId)
-                    : '空';
-            this.hud?.setCellInfo(`格 (${col},${row}) · ${name}（选刷子后可绘制）`);
-            this.refreshSizeInfo(cell?.symbolId ?? null);
+            this.refreshSelectedCellUi(col, row);
             return;
         }
         const current = this.doc.states[this.currentIndex].board.resolved[col]?.[row]?.symbolId ?? null;
         if (current === this.brush) return;
-        const cmd = new SetResolvedCellCommand(this.currentIndex, col, row, this.brush);
+        const entry = this.brush !== null ? this.catalog.getEntry(this.brush) : null;
+        const multi = isMultiEntry(entry) ? { multiplier: DEFAULT_MULTI_VALUE } : null;
+        const cmd = new SetResolvedCellCommand(this.currentIndex, col, row, this.brush, multi);
         cmd.apply(this.doc);
         this.stroke.push(cmd);
-        this.boardView.applyCell(col, row, this.brush);
+        this.boardView.applyCell(col, row, this.brush, multi?.multiplier ?? null);
+    }
+
+    private refreshSelectedCellUi(col: number, row: number): void {
+        if (!this.doc) return;
+        const board = this.doc.states[this.currentIndex].board;
+        const cell = board.resolved[col]?.[row];
+        const name =
+            cell && cell.symbolId !== null
+                ? this.catalog.getEntry(cell.symbolId)?.name ?? String(cell.symbolId)
+                : '空';
+        const ent = cell?.entityRef ? board.entities[cell.entityRef] : null;
+        const isMulti = !!ent && (ent.kind === 'multi' || isMultiEntry(this.catalog.getEntry(ent.symbolId)));
+        const mult = isMulti ? ent!.multiplier ?? DEFAULT_MULTI_VALUE : null;
+        this.hud?.setCellInfo(
+            mult !== null
+                ? `格 (${col},${row}) · ${name} · ${mult}x`
+                : `格 (${col},${row}) · ${name}（选刷子后可绘制）`,
+        );
+        this.hud?.setMultiplierEditor(mult);
+        this.refreshSizeInfo(cell?.symbolId ?? null);
+    }
+
+    private adjustMultiplier(dir: 1 | -1): void {
+        if (!this.doc || !this.history || !this.boardView) return;
+        if (this.director?.isPlaying) return;
+        const selected = this.boardView.getSelected();
+        if (!selected) return;
+        const { col, row } = selected;
+        const board = this.doc.states[this.currentIndex].board;
+        const cell = board.resolved[col]?.[row];
+        const ent = cell?.entityRef ? board.entities[cell.entityRef] : null;
+        if (!ent || (ent.kind !== 'multi' && !isMultiEntry(this.catalog.getEntry(ent.symbolId)))) return;
+        const cur = ent.multiplier ?? DEFAULT_MULTI_VALUE;
+        const next = Math.max(1, Math.min(999, cur + dir));
+        if (next === cur) return;
+        this.applyMultiplier(col, row, cell!.symbolId, next);
+    }
+
+    private setMultiplierValue(value: number): void {
+        if (!this.doc || !this.history || !this.boardView) return;
+        if (this.director?.isPlaying) return;
+        const selected = this.boardView.getSelected();
+        if (!selected) return;
+        const { col, row } = selected;
+        const board = this.doc.states[this.currentIndex].board;
+        const cell = board.resolved[col]?.[row];
+        const ent = cell?.entityRef ? board.entities[cell.entityRef] : null;
+        if (!ent || (ent.kind !== 'multi' && !isMultiEntry(this.catalog.getEntry(ent.symbolId)))) return;
+        const next = Math.max(1, Math.min(999, Math.round(value)));
+        if (next === (ent.multiplier ?? DEFAULT_MULTI_VALUE)) {
+            this.hud?.setMultiplierEditor(next);
+            return;
+        }
+        this.applyMultiplier(col, row, cell!.symbolId, next);
+    }
+
+    private applyMultiplier(col: number, row: number, symbolId: number, next: number): void {
+        this.history!.execute(new SetEntityMultiplierCommand(this.currentIndex, col, row, next));
+        this.boardView!.applyCell(col, row, symbolId, next);
+        this.refreshSelectedCellUi(col, row);
+        this.afterEdit();
     }
 
     private onStrokeEnd(): void {

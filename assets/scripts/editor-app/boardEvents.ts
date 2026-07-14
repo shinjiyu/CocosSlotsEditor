@@ -28,7 +28,9 @@ export type BoardEventType =
     /** highlight 单格中奖演出开始前 */
     | 'symbol-win'
     /** postClear 单格本体消失开始前（加分挂这里，symbolId 为被消除的符号） */
-    | 'symbol-vanish';
+    | 'symbol-vanish'
+    /** expandPost 单格倍率球从源格飞入落地前 */
+    | 'multi-expand';
 
 export interface BoardEvent {
     type: BoardEventType;

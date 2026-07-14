@@ -1,0 +1,57 @@
+{
+  "id": "BlueTimesMoving",
+  "kind": "particleComponent",
+  "name": "BlueTimesMoving",
+  "particleAssetName": "timesParticle",
+  "url": "https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/g1005/import/0e/0e7304390.json",
+  "prefabUrl": "particles/golden-seth/BlueTimesMoving/BlueTimesMoving.prefab.json",
+  "plistUrl": null,
+  "textureUrl": null,
+  "params": {
+    "dstBlendFactor": 1,
+    "emissionRate": 2000,
+    "life": 0.4,
+    "angle": 50,
+    "angleVar": 50,
+    "startSize": 60,
+    "startSizeVar": 90,
+    "startSpin": 30,
+    "speed": 1,
+    "speedVar": 5,
+    "tangentialAccel": -5,
+    "radialAccel": -2,
+    "rotationIsDir": true,
+    "custom": true,
+    "totalParticles": 2000,
+    "posVar": {
+      "x": 20,
+      "y": 15
+    },
+    "gravity": {
+      "x": 50,
+      "y": 0
+    },
+    "startColor": {
+      "a": 255,
+      "b": 218,
+      "g": 104,
+      "r": 15
+    },
+    "endColor": {
+      "a": 255,
+      "b": 255,
+      "g": 20,
+      "r": 0
+    },
+    "file": {
+      "ref": "49FxZGf6VJgKfysK4NSp+7",
+      "index": 1
+    },
+    "spriteFrame": {
+      "ref": "24xBnqY6hOoanQf8RpSJu8@f9941",
+      "index": 0
+    }
+  },
+  "paramSource": "prefab",
+  "note": "custom=true：以 prefab 参数为准"
+}

@@ -1,0 +1,6 @@
+{
+  "sdkUrl": "https://YOUR_HOST/remote-console/sdk/remote-console.legacy.umd.js",
+  "serverUrl": "wss://YOUR_HOST/remote-console/ws",
+  "token": "rct_YOUR_TOKEN_HERE",
+  "enabled": true
+}

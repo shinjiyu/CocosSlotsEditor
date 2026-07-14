@@ -8,11 +8,13 @@
  *   highlight            → symbolWin（符号winAnim+格子特效，缺省回落脉冲）| pulse | noop
  *   postClear            → vanish | dropOut（重力掉出）| noop
  *   compact              → compactFall | noop（列内现有符号下沉补位，无新符号）
+ *   expandPre            → pulse | noop（扩散前蓄力脉冲）
+ *   expandPost           → multiExpand | noop（倍率球从源格飞入邻格）
  * 「满盘换新盘」演出 = reveal 前插一个 postClear 全空帧（dropOut）+ reveal（dropIn）。
  * 帧可用 extensions.frame.templateId / templateParams 在允许范围内覆盖默认模板。
  */
 
-import { Node, Tween, tween, UIOpacity, UITransform, Vec3, view } from 'cc';
+import { Node, ParticleSystem2D, Tween, UIOpacity, UITransform, Vec3, sp, tween, view } from 'cc';
 import type { IAnim } from '../common/anim/IAnim';
 import { call, delay, par, seq, starterAnim } from '../common/anim/compose';
 import { loop } from '../common/anim/compose';
@@ -21,6 +23,7 @@ import type { IrFrameKind } from '../editor-core/index';
 import { readFrameExt } from '../editor-core/index';
 import type { BoardView } from './BoardView';
 import type { BoardEvents, BoardEventType } from './boardEvents';
+import { resolveTrailSprite, spawnBlueTimesTrail } from './SplitParticleFx';
 
 // ============================================================================
 // 上下文 / 参数
@@ -521,6 +524,279 @@ const vanishTemplate: AnimTemplate = {
     },
 };
 
+interface MultiHop {
+    fromCol: number;
+    fromRow: number;
+    toCol: number;
+    toRow: number;
+    symbolId: number;
+    multiplier: number;
+}
+
+function readMultiCell(
+    state: PresentationState,
+    col: number,
+    row: number,
+): { symbolId: number; multiplier: number; expandFrom?: { col: number; row: number } } | null {
+    const cell = state.board.resolved[col]?.[row];
+    if (!cell || cell.symbolId === null || !cell.entityRef) return null;
+    const ent = state.board.entities[cell.entityRef];
+    if (!ent || ent.kind !== 'multi') return null;
+    const raw = ent.meta?.expandFrom;
+    let expandFrom: { col: number; row: number } | undefined;
+    if (raw && typeof raw === 'object') {
+        const o = raw as Record<string, unknown>;
+        if (typeof o.col === 'number' && typeof o.row === 'number') expandFrom = { col: o.col, row: o.row };
+    }
+    return {
+        symbolId: cell.symbolId,
+        multiplier: Math.max(1, ent.multiplier ?? 1),
+        expandFrom,
+    };
+}
+
+/** 收集 prev→curr 新出现的 multi 格，并解析飞入源格 */
+function collectMultiHops(prev: PresentationState, curr: PresentationState): MultiHop[] {
+    const { cols, visibleRows } = curr.board.topology;
+    const prevMultis: Array<{ col: number; row: number; symbolId: number }> = [];
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            const m = readMultiCell(prev, c, r);
+            if (m) prevMultis.push({ col: c, row: r, symbolId: m.symbolId });
+        }
+    }
+
+    const hops: MultiHop[] = [];
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            const cur = readMultiCell(curr, c, r);
+            if (!cur) continue;
+            const was = readMultiCell(prev, c, r);
+            if (was && was.symbolId === cur.symbolId) continue; // 原位保留
+
+            let fromCol = cur.expandFrom?.col;
+            let fromRow = cur.expandFrom?.row;
+            if (
+                fromCol === undefined ||
+                fromRow === undefined ||
+                !readMultiCell(prev, fromCol, fromRow)
+            ) {
+                // 最近 prev multi（同 symbol 优先）
+                let best: { col: number; row: number; d: number; same: boolean } | null = null;
+                for (const p of prevMultis) {
+                    const d = Math.abs(p.col - c) + Math.abs(p.row - r);
+                    const same = p.symbolId === cur.symbolId;
+                    if (
+                        !best ||
+                        (same && !best.same) ||
+                        (same === best.same && d < best.d)
+                    ) {
+                        best = { col: p.col, row: p.row, d, same };
+                    }
+                }
+                if (!best) continue;
+                fromCol = best.col;
+                fromRow = best.row;
+            }
+            hops.push({
+                fromCol,
+                fromRow,
+                toCol: c,
+                toRow: r,
+                symbolId: cur.symbolId,
+                multiplier: cur.multiplier,
+            });
+        }
+    }
+    return hops;
+}
+
+const multiExpandTemplate: AnimTemplate = {
+    id: 'multiExpand',
+    label: '倍率球扩散',
+    defaultParams: { flyDuration: 0.4, particleSize: 30, stagger: 0.05 },
+    paramSchema: [
+        { key: 'flyDuration', label: '飞行时长(s)', type: 'number', min: 0.05, max: 1.5, step: 0.05 },
+        { key: 'particleSize', label: '粒子大小', type: 'number', min: 8, max: 120, step: 2 },
+        { key: 'stagger', label: '交错(s)', type: 'number', min: 0, max: 0.3, step: 0.01 },
+    ],
+    build(ctx: TemplateContext): IAnim {
+        const { boardView, prev, curr, params } = ctx;
+        const dur = num(params, 'flyDuration', 0.4);
+        const particleSize = num(params, 'particleSize', 30);
+        const stagger = num(params, 'stagger', 0.05);
+        const hops = collectMultiHops(prev, curr);
+        if (!hops.length) {
+            return call(() => boardView.render(curr));
+        }
+
+        const { cols, visibleRows } = curr.board.topology;
+        const rows = Math.max(...visibleRows);
+        const fx = boardView.getCatalog()?.expandSplitFx;
+        const trailSprite = resolveTrailSprite(fx?.splitParticle ?? null);
+        const splitB = fx?.splitB ?? null;
+        const animB = fx?.splitBAnim || 'split_B';
+
+        if (!trailSprite || !splitB) {
+            console.warn('[multiExpand] 缺少 trail sprite / expandSplitB，回落格节点飞入', {
+                hasSprite: !!trailSprite,
+                hasSplitB: !!splitB,
+            });
+            return buildLegacyMultiFly(ctx, hops, dur, stagger, cols, rows);
+        }
+
+        const hopsAnim: IAnim[] = hops.map((h, i) => {
+            const from = boardView.cellPosition(h.fromCol, h.fromRow, cols, rows);
+            const to = boardView.cellPosition(h.toCol, h.toRow, cols, rows);
+            return seq(
+                delay(i * stagger),
+                eventStep(ctx, 'multi-expand', {
+                    col: h.toCol,
+                    row: h.toRow,
+                    symbolId: h.symbolId,
+                }),
+                // 飞弹与 split_B 略重叠：落地提前开，尾迹很快收进爆炸
+                par(
+                    starterAnim((finish) => {
+                        const host = boardView.node;
+                        let root: Node | null = null;
+                        let ps: ParticleSystem2D | null = null;
+                        let tw: Tween<Node> | null = null;
+                        let drain: IAnim | null = null;
+                        try {
+                            const spawned = spawnBlueTimesTrail(host, trailSprite, from, {
+                                startSize: particleSize,
+                            });
+                            root = spawned.root;
+                            ps = spawned.ps;
+                            tw = tween(root)
+                                .to(dur, { position: new Vec3(to.x, to.y, 0) }, { easing: 'quadOut' })
+                                .call(() => {
+                                    if (ps?.isValid) ps.stopSystem();
+                                    const head = root?.getChildByName('head');
+                                    if (head?.isValid) head.active = false;
+                                    finish();
+                                    drain = delay(0.24);
+                                    void drain.play().then(
+                                        () => {
+                                            if (root?.isValid) root.destroy();
+                                        },
+                                        () => undefined,
+                                    );
+                                })
+                                .start();
+                        } catch (err) {
+                            console.warn('[multiExpand] trail 飞弹失败，直接落地', err);
+                            if (root?.isValid) root.destroy();
+                            finish();
+                        }
+                        return () => {
+                            tw?.stop();
+                            if (drain?.isPlaying) drain.cancel();
+                            if (root?.isValid) root.destroy();
+                        };
+                    }),
+                    seq(
+                        delay(Math.max(0, dur - 0.08)),
+                        starterAnim((finish) => {
+                            const host = boardView.node;
+                            const n = new Node('split_B_land');
+                            n.layer = host.layer;
+                            n.addComponent(UITransform);
+                            const sk = n.addComponent(sp.Skeleton);
+                            sk.skeletonData = splitB;
+                            sk.premultipliedAlpha = false;
+                            n.setPosition(to.x, to.y, 0);
+                            host.addChild(n);
+                            n.setSiblingIndex(host.children.length - 1);
+
+                            let shown = false;
+                            const showBall = (): void => {
+                                if (shown) return;
+                                shown = true;
+                                boardView.applyCell(h.toCol, h.toRow, h.symbolId, h.multiplier);
+                            };
+
+                            sk.setEventListener((_entry, ev) => {
+                                const name = (ev as { data?: { name?: string } })?.data?.name ?? '';
+                                if (name === 'show symbol' || name === 'show_symbol' || name === 'split_B') {
+                                    showBall();
+                                }
+                            });
+
+                            let track: { animation?: { duration?: number } } | null = null;
+                            try {
+                                track = sk.setAnimation(0, animB, false) as {
+                                    animation?: { duration?: number };
+                                } | null;
+                            } catch {
+                                showBall();
+                                if (n.isValid) n.destroy();
+                                finish();
+                                return () => undefined;
+                            }
+
+                            const mid = delay(Math.max(0.12, (track?.animation?.duration ?? 0.8) * 0.28));
+                            void mid.play().then(
+                                () => showBall(),
+                                () => undefined,
+                            );
+
+                            sk.setCompleteListener(() => {
+                                showBall();
+                                if (n.isValid) n.destroy();
+                                finish();
+                            });
+
+                            return () => {
+                                if (mid.isPlaying) mid.cancel();
+                                if (n.isValid) n.destroy();
+                            };
+                        }),
+                    ),
+                ),
+            );
+        });
+
+        return par(...hopsAnim);
+    },
+};
+
+/** 无 split 粒子时的旧飞入（格节点 tween） */
+function buildLegacyMultiFly(
+    ctx: TemplateContext,
+    hops: MultiHop[],
+    dur: number,
+    stagger: number,
+    cols: number,
+    rows: number,
+): IAnim {
+    const { boardView } = ctx;
+    const flies: IAnim[] = hops.map((h, i) => {
+        const node = boardView.getCellNode(h.toCol, h.toRow);
+        if (!node) return call(() => undefined);
+        const from = boardView.cellPosition(h.fromCol, h.fromRow, cols, rows);
+        const to = boardView.cellPosition(h.toCol, h.toRow, cols, rows);
+        return seq(
+            delay(i * stagger),
+            eventStep(ctx, 'multi-expand', { col: h.toCol, row: h.toRow, symbolId: h.symbolId }),
+            call(() => {
+                boardView.applyCell(h.toCol, h.toRow, h.symbolId, h.multiplier);
+                node.setPosition(from.x, from.y, 0);
+                node.setScale(0.35, 0.35, 1);
+            }),
+            tweenStep(node, (t) =>
+                t.to(dur, { position: new Vec3(to.x, to.y, 0), scale: new Vec3(1, 1, 1) }, { easing: 'quadOut' }),
+            ),
+            call(() => {
+                node.setScale(1, 1, 1);
+                node.setPosition(to.x, to.y, 0);
+            }),
+        );
+    });
+    return par(...flies);
+}
+
 const noopTemplate: AnimTemplate = {
     id: 'noop',
     label: '无动画',
@@ -542,6 +818,7 @@ const TEMPLATES: Record<string, AnimTemplate> = {
     pulse: pulseTemplate,
     symbolWin: symbolWinTemplate,
     vanish: vanishTemplate,
+    multiExpand: multiExpandTemplate,
     noop: noopTemplate,
 };
 
@@ -558,8 +835,8 @@ const KIND_ALLOWED: Record<IrFrameKind, string[]> = {
     'enter-table-mid-cascade': ['dropIn', 'noop'],
     postClear: ['vanish', 'dropOut', 'noop'],
     compact: ['compactFall', 'noop'],
-    expandPre: ['noop', 'pulse'],
-    expandPost: ['noop', 'pulse'],
+    expandPre: ['pulse', 'noop'],
+    expandPost: ['multiExpand', 'noop'],
     spinEnd: ['noop', 'pulse'],
 };
 
