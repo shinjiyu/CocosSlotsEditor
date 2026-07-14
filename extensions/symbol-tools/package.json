@@ -1,8 +1,8 @@
 {
   "package_version": 2,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "name": "symbol-tools",
-  "description": "盘面编辑器资产工具：导出 symbol-library 依赖闭包为可迁移的 Symbol 包",
+  "description": "盘面编辑器资产工具：按盘面裁剪导出 symbol-library 依赖闭包（AI 静默 + 人工菜单）",
   "main": "./main.js",
   "author": "symbolEditor",
   "editor": ">=3.8.0",
@@ -10,13 +10,21 @@
     "menu": [
       {
         "path": "扩展/盘面编辑器",
-        "label": "导出 Symbol 包",
+        "label": "导出 Symbol 包（全量）",
         "message": "export-pack"
+      },
+      {
+        "path": "扩展/盘面编辑器",
+        "label": "导出 Symbol 包（按盘面，AI 同款）",
+        "message": "export-pack-for-ai"
       }
     ],
     "messages": {
       "export-pack": {
         "methods": ["exportPack"]
+      },
+      "export-pack-for-ai": {
+        "methods": ["exportPackForAi"]
       }
     }
   }

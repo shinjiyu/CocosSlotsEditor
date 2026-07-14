@@ -1,0 +1,26 @@
+﻿{
+  "name": "export_symbol_pack_for_ai",
+  "description": "SE silent used-only symbol pack (symbol-tools/export-pack-for-ai, no dialog)",
+  "mode": "eval",
+  "params": {
+    "gameId": {
+      "type": "string",
+      "description": "game pack id under assets/resources/games/",
+      "default": "golden-seth",
+      "optional": true
+    },
+    "docRel": {
+      "type": "string",
+      "description": "EditorDoc JSON relative to SE root",
+      "default": "assets/resources/configs/presentation/doc_example.json",
+      "optional": true
+    },
+    "includeRuntimeScripts": {
+      "type": "boolean",
+      "description": "Also pack runtime TS (usually false; use seRuntimeSync)",
+      "default": false,
+      "optional": true
+    }
+  },
+  "code": "const opts = {\n  usedOnly: true,\n  includeRuntimeScripts: !!(typeof includeRuntimeScripts !== 'undefined' && includeRuntimeScripts),\n};\nif (typeof gameId !== 'undefined' && gameId) opts.gameId = gameId;\nif (typeof docRel !== 'undefined' && docRel) opts.docRel = docRel;\nreturn await Editor.Message.request('symbol-tools', 'export-pack-for-ai', opts);"
+}
