@@ -90,7 +90,7 @@ export class SymbolEntry {
     @property({ tooltip: 'spine 入场动画名；空 = 用下方内置入场动效' })
     enterAnim = '';
 
-    @property({ tooltip: 'spine 中奖动画名（highlight 帧播）' })
+    @property({ tooltip: 'spine 中奖动画名（highlight 帧播）；倍率球收集转一下默认也可用，空则用 function' })
     winAnim = '';
 
     @property({ tooltip: 'spine 消除动画名（postClear 帧播）' })

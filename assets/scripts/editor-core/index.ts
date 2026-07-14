@@ -12,6 +12,7 @@ export {
     makeEmptyDoc,
     makeCompactedState,
     makeExpandedState,
+    makeMultiCollectedState,
     validateDoc,
     serializeDoc,
     deserializeDoc,

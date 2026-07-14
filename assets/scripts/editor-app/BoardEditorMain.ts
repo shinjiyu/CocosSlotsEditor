@@ -11,6 +11,7 @@ import {
     readFrameExt,
     makeCompactedState,
     makeExpandedState,
+    makeMultiCollectedState,
     AddStateCommand,
     RemoveStateCommand,
     SetResolvedCellCommand,
@@ -52,6 +53,7 @@ const EDITOR_FRAME_KINDS: IrFrameKind[] = [
     'compact',
     'expandPre',
     'expandPost',
+    'multiCollect',
     'spinEnd',
 ];
 
@@ -178,6 +180,21 @@ export class BoardEditorMain extends Component {
         this.director.events.on('symbol-vanish', (e) => {
             console.log(`[BoardEvents demo] 消除 → 加分点：symbol=${e.symbolId} @ (${e.col},${e.row}) 帧${e.frameIndex + 1}`);
         });
+        this.director.events.on('multi-expand', (e) => {
+            console.log(
+                `[BoardEvents demo] 倍率飞出(音效槽) ×${e.multiplier ?? '?'} symbol=${e.symbolId} → (${e.col},${e.row})`,
+            );
+        });
+        this.director.events.on('multi-expand-land', (e) => {
+            console.log(
+                `[BoardEvents demo] 倍率落地(音效槽) ×${e.multiplier ?? '?'} symbol=${e.symbolId} @ (${e.col},${e.row})`,
+            );
+        });
+        this.director.events.on('multi-collect', (e) => {
+            console.log(
+                `[BoardEvents demo] 倍率收集(音效/结算) ×${e.multiplier ?? '?'} symbol=${e.symbolId} @ (${e.col},${e.row})`,
+            );
+        });
         this.director.events.on('*', (e) => {
             if (e.type === 'transition-start' || e.type === 'transition-end') {
                 console.log(`[BoardEvents] ${e.type} 帧${e.frameIndex + 1} kind=${e.frameKind ?? '-'}`);
@@ -208,6 +225,7 @@ export class BoardEditorMain extends Component {
                 onPlayCurrentTransition: () => void this.playCurrentTransition(),
                 onGenerateCompactFrame: () => this.generateCompactFrame(),
                 onGenerateExpandFrame: () => this.generateExpandFrame(),
+                onGenerateMultiCollectFrame: () => this.generateMultiCollectFrame(),
                 onAdjustGap: (axis, dir) => this.adjustGap(axis, dir),
                 onCycleGame: (dir) => void this.cycleGame(dir),
                 onAdjustMultiplier: (dir) => this.adjustMultiplier(dir),
@@ -473,6 +491,20 @@ export class BoardEditorMain extends Component {
         this.afterEdit();
         this.showState(this.currentIndex + 1);
         this.hud?.setStatus('已生成 expandPost 扩散帧 · 点「播本帧转移」预览');
+    }
+
+    /** 基于当前帧生成倍率数字收集后的 multiCollect 帧（球保留、数字清掉） */
+    private generateMultiCollectFrame(): void {
+        if (!this.doc || !this.history) return;
+        const collected = makeMultiCollectedState(this.doc.states[this.currentIndex]);
+        if (!collected) {
+            this.hud?.setStatus('当前帧没有可收集的倍率数字');
+            return;
+        }
+        this.history.execute(new AddStateCommand(this.currentIndex + 1, collected));
+        this.afterEdit();
+        this.showState(this.currentIndex + 1);
+        this.hud?.setStatus('已生成 multiCollect 倍率收集帧 · 点「播本帧转移」预览');
     }
 
     private async playCurrentTransition(): Promise<void> {

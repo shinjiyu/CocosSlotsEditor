@@ -10,7 +10,7 @@
 
 - **刷子式盘面编辑**：右侧 Inspector 选中 symbol 作为刷子，在盘面上点/拖绘制；一笔 = 一次撤销单位
 - **帧管理**：+帧 / −帧 / 上一帧 / 下一帧 / 基于当前帧自动生成 compact（重力压缩）帧
-- **动画编辑**：每帧可配 `frameKind`（enter-table / reveal / highlight / postClear / compact / spinEnd / expandPre / expandPost …）、动画模板（下落进场、重力落出、压缩下落、符号中奖、消除、脉冲、倍率扩散飞弹、无动画）及其参数；支持「与上帧同播」并行转移（**不限 frameKind**：第 2 帧起任意类型均可开关；连续标记会并成一批 `par` 同播）
+- **动画编辑**：每帧可配 `frameKind`（enter-table / reveal / highlight / postClear / compact / expandPre / expandPost / multiCollect / spinEnd …）、动画模板（下落进场、重力落出、压缩下落、符号中奖、消除、脉冲、倍率扩散飞弹、倍率收集、无动画）及其参数；支持「与上帧同播」并行转移（**不限 frameKind**：第 2 帧起任意类型均可开关；连续标记会并成一批 `par` 同播）
 - **播放预览**：整段播放或单帧转移试播
 - **盘面布局**：行距 / 列距实时可调（支持负数重叠排布），配置持久化
 - **现场保护**：每次编辑后全文档自动写入 localStorage，刷新 / 崩溃后自动恢复；支持导出 JSON 下载与本地文件导入

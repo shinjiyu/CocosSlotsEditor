@@ -29,8 +29,12 @@ export type BoardEventType =
     | 'symbol-win'
     /** postClear 单格本体消失开始前（加分挂这里，symbolId 为被消除的符号） */
     | 'symbol-vanish'
-    /** expandPost 单格倍率球从源格飞入落地前 */
-    | 'multi-expand';
+    /** expandPost 单格倍率球飞出开始（音效槽；带 multiplier） */
+    | 'multi-expand'
+    /** expandPost 单格倍率球落地/现身（音效槽；带 multiplier） */
+    | 'multi-expand-land'
+    /** multiCollect 单格倍率数字开始被收集（音效/结算槽；带 multiplier；球本身保留） */
+    | 'multi-collect';
 
 export interface BoardEvent {
     type: BoardEventType;
@@ -40,6 +44,8 @@ export interface BoardEvent {
     col?: number;
     row?: number;
     symbolId?: number | null;
+    /** multi 相关事件携带实体倍率 */
+    multiplier?: number;
 }
 
 export type BoardEventHandler = (e: BoardEvent) => void | Promise<void>;

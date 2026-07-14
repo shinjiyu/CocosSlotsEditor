@@ -196,6 +196,45 @@ export function makeExpandedState(source: PresentationState): PresentationState 
     return next;
 }
 
+/**
+ * 由 source 生成「倍率收集」后的盘面：倍率球保留，清掉 entity.multiplier，
+ * 并把原数字写入 meta.lastMultiplier（动画/事件用）。
+ */
+export function makeMultiCollectedState(source: PresentationState): PresentationState | null {
+    const next = deserialize(serialize(source));
+    const { cols, visibleRows } = next.board.topology;
+    let collected = 0;
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            const cell = next.board.resolved[c][r];
+            if (cell.symbolId === null || !cell.entityRef) continue;
+            const ent = next.board.entities[cell.entityRef];
+            if (!ent || ent.kind !== 'multi') continue;
+            if (typeof ent.multiplier !== 'number' || !Number.isFinite(ent.multiplier) || ent.multiplier <= 0) {
+                continue;
+            }
+            const meta =
+                ent.meta && typeof ent.meta === 'object' && !Array.isArray(ent.meta)
+                    ? { ...(ent.meta as Record<string, unknown>) }
+                    : {};
+            meta.lastMultiplier = ent.multiplier;
+            ent.meta = meta;
+            delete ent.multiplier;
+            collected++;
+        }
+    }
+    if (!collected) return null;
+
+    const ext = readFrameExt(next);
+    writeFrameExt(next, {
+        cascadeIndex: ext?.cascadeIndex ?? 0,
+        frameIndex: (ext?.frameIndex ?? 0) + 1,
+        frameKind: 'multiCollect',
+        templateId: 'multiCollect',
+    });
+    return next;
+}
+
 export function makeEmptyDoc(id: string, name: string, cols: number, rows: number): EditorDoc {
     return {
         docVersion: 1,

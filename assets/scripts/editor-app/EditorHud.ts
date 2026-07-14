@@ -45,6 +45,8 @@ export interface HudCallbacks {
     onGenerateCompactFrame(): void;
     /** 基于当前帧自动生成倍率球扩散 expandPost 帧 */
     onGenerateExpandFrame(): void;
+    /** 基于当前帧自动生成倍率数字收集 multiCollect 帧 */
+    onGenerateMultiCollectFrame(): void;
     /** 盘面列距/行距调整 */
     onAdjustGap(axis: 'col' | 'row', dir: 1 | -1): void;
     /** 切换游戏符号包（dir=±1 循环） */
@@ -625,6 +627,9 @@ export class EditorHud extends Component {
         );
         root.addChild(
             this.makeButton('⤵ 生成扩散帧', () => cb.onGenerateExpandFrame(), new Vec3(85, y - 56, 0), 150),
+        );
+        root.addChild(
+            this.makeButton('⤵ 生成倍率收集', () => cb.onGenerateMultiCollectFrame(), new Vec3(85, y - 100, 0), 150),
         );
     }
 

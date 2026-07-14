@@ -10,6 +10,7 @@
  *   compact              → compactFall | noop（列内现有符号下沉补位，无新符号）
  *   expandPre            → pulse | noop（扩散前蓄力脉冲）
  *   expandPost           → multiExpand | noop（倍率球从源格飞入邻格）
+ *   multiCollect         → multiCollect | noop（倍率球转动后数字被收集，球保留）
  * 「满盘换新盘」演出 = reveal 前插一个 postClear 全空帧（dropOut）+ reveal（dropIn）。
  * 帧可用 extensions.frame.templateId / templateParams 在允许范围内覆盖默认模板。
  */
@@ -112,7 +113,7 @@ function diffCells(prev: PresentationState, curr: PresentationState): CellDiff[]
 function eventStep(
     ctx: TemplateContext,
     type: BoardEventType,
-    cell?: { col: number; row: number; symbolId: number | null },
+    cell?: { col: number; row: number; symbolId: number | null; multiplier?: number },
 ): IAnim {
     const ev = ctx.events;
     if (!ev) return call(() => undefined);
@@ -124,6 +125,7 @@ function eventStep(
             col: cell?.col,
             row: cell?.row,
             symbolId: cell?.symbolId,
+            multiplier: cell?.multiplier,
         }),
     );
 }
@@ -654,6 +656,7 @@ const multiExpandTemplate: AnimTemplate = {
                     col: h.toCol,
                     row: h.toRow,
                     symbolId: h.symbolId,
+                    multiplier: h.multiplier,
                 }),
                 // 飞弹与 split_B 略重叠：落地提前开，尾迹很快收进爆炸
                 par(
@@ -755,6 +758,12 @@ const multiExpandTemplate: AnimTemplate = {
                         }),
                     ),
                 ),
+                eventStep(ctx, 'multi-expand-land', {
+                    col: h.toCol,
+                    row: h.toRow,
+                    symbolId: h.symbolId,
+                    multiplier: h.multiplier,
+                }),
             );
         });
 
@@ -779,7 +788,12 @@ function buildLegacyMultiFly(
         const to = boardView.cellPosition(h.toCol, h.toRow, cols, rows);
         return seq(
             delay(i * stagger),
-            eventStep(ctx, 'multi-expand', { col: h.toCol, row: h.toRow, symbolId: h.symbolId }),
+            eventStep(ctx, 'multi-expand', {
+                col: h.toCol,
+                row: h.toRow,
+                symbolId: h.symbolId,
+                multiplier: h.multiplier,
+            }),
             call(() => {
                 boardView.applyCell(h.toCol, h.toRow, h.symbolId, h.multiplier);
                 node.setPosition(from.x, from.y, 0);
@@ -792,10 +806,94 @@ function buildLegacyMultiFly(
                 node.setScale(1, 1, 1);
                 node.setPosition(to.x, to.y, 0);
             }),
+            eventStep(ctx, 'multi-expand-land', {
+                col: h.toCol,
+                row: h.toRow,
+                symbolId: h.symbolId,
+                multiplier: h.multiplier,
+            }),
         );
     });
     return par(...flies);
 }
+
+/** 当前帧（curr）上所有倍率球 — 全员参与收集，不求差、不看上一帧格子集合 */
+function collectAllMultiBallsOnFrame(state: PresentationState): MultiHop[] {
+    const { cols, visibleRows } = state.board.topology;
+    const out: MultiHop[] = [];
+    for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < visibleRows[c]; r++) {
+            const cell = state.board.resolved[c]?.[r];
+            if (!cell?.entityRef || cell.symbolId === null) continue;
+            const ent = state.board.entities[cell.entityRef];
+            if (!ent || ent.kind !== 'multi') continue;
+
+            let multiplier: number | null = null;
+            if (typeof ent.multiplier === 'number' && Number.isFinite(ent.multiplier) && ent.multiplier > 0) {
+                multiplier = ent.multiplier;
+            } else if (ent.meta && typeof ent.meta === 'object') {
+                const last = (ent.meta as Record<string, unknown>).lastMultiplier;
+                if (typeof last === 'number' && Number.isFinite(last) && last > 0) multiplier = last;
+            }
+            if (multiplier === null) continue;
+
+            out.push({
+                fromCol: c,
+                fromRow: r,
+                toCol: c,
+                toRow: r,
+                symbolId: cell.symbolId,
+                multiplier,
+            });
+        }
+    }
+    return out;
+}
+
+const multiCollectTemplate: AnimTemplate = {
+    id: 'multiCollect',
+    label: '倍率收集',
+    defaultParams: { stagger: 0.04 },
+    paramSchema: [
+        { key: 'stagger', label: '交错(s)', type: 'number', min: 0, max: 0.3, step: 0.01 },
+    ],
+    build(ctx: TemplateContext): IAnim {
+        const { boardView, curr, params } = ctx;
+        const stagger = num(params, 'stagger', 0.04);
+        // 使用「当前帧」(curr) 上的全部倍率球
+        const collects = collectAllMultiBallsOnFrame(curr);
+        if (!collects.length) {
+            return call(() => boardView.render(curr));
+        }
+
+        // 播转移时 Director 会先渲染 prev；若 curr 已清掉数字，先把数字贴回再演收集
+        const ensureDigits = call(() => {
+            for (const h of collects) {
+                boardView.applyCell(h.toCol, h.toRow, h.symbolId, h.multiplier);
+            }
+        });
+
+        const steps: IAnim[] = collects.map((h, i) => {
+            return seq(
+                delay(i * stagger),
+                eventStep(ctx, 'multi-collect', {
+                    col: h.toCol,
+                    row: h.toRow,
+                    symbolId: h.symbolId,
+                    multiplier: h.multiplier,
+                }),
+                // 数字与 spine 同时开始：倍率立刻消失，球播 function 转一下
+                par(
+                    call(() => {
+                        boardView.applyCell(h.toCol, h.toRow, h.symbolId, null);
+                    }),
+                    lazyCellAnim(() => boardView.getSymbolView(h.toCol, h.toRow)?.buildMultiSpinAnim() ?? null),
+                ),
+            );
+        });
+        return seq(ensureDigits, par(...steps));
+    },
+};
 
 const noopTemplate: AnimTemplate = {
     id: 'noop',
@@ -819,6 +917,7 @@ const TEMPLATES: Record<string, AnimTemplate> = {
     symbolWin: symbolWinTemplate,
     vanish: vanishTemplate,
     multiExpand: multiExpandTemplate,
+    multiCollect: multiCollectTemplate,
     noop: noopTemplate,
 };
 
@@ -837,6 +936,7 @@ const KIND_ALLOWED: Record<IrFrameKind, string[]> = {
     compact: ['compactFall', 'noop'],
     expandPre: ['pulse', 'noop'],
     expandPost: ['multiExpand', 'noop'],
+    multiCollect: ['multiCollect', 'noop'],
     spinEnd: ['noop', 'pulse'],
 };
 

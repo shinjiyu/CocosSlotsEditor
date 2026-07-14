@@ -16,6 +16,7 @@ export type IrFrameKind =
     | 'compact'
     | 'expandPre'
     | 'expandPost'
+    | 'multiCollect'
     | 'spinEnd'
     | 'enter-table';
 
@@ -30,6 +31,7 @@ export const IR_FRAME_KINDS: IrFrameKind[] = [
     'compact',
     'expandPre',
     'expandPost',
+    'multiCollect',
     'spinEnd',
 ];
 

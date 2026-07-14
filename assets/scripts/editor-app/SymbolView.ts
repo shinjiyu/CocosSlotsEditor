@@ -288,6 +288,58 @@ export class SymbolView extends Component {
         return visual ?? sound;
     }
 
+    /**
+     * 倍率球收集时的 spine「转一下」。只用骨骼动画（默认名 function），不做节点旋转 tween。
+     * @param animName 覆盖条目 winAnim；最终回落 'function'（倍率球骨骼约定）
+     */
+    buildMultiSpinAnim(animName?: string): IAnim | null {
+        if (this.currentId === null || !this.content) return null;
+        const entry = this.provider?.getEntry(this.currentId);
+        if (!isMultiEntry(entry)) return null;
+        const name = (animName?.trim() || entry?.winAnim?.trim() || 'function').trim();
+        if (!name) return null;
+        return this.buildSpineHook(name, true);
+    }
+
+    /**
+     * 倍率数字收集消失：times 标签缩淡后隐藏（球本身不动）。
+     */
+    buildMultiDigitCollectAnim(dur = 0.22): IAnim | null {
+        if (!this.multiLabel?.isValid || !this.multiLabel.node.active) return null;
+        const labelNode = this.multiLabel.node;
+        const op = labelNode.getComponent(UIOpacity) ?? labelNode.addComponent(UIOpacity);
+        return starterAnim((finish) => {
+            if (!labelNode.isValid) {
+                finish();
+                return;
+            }
+            const base = labelNode.scale.clone();
+            const t1 = tween(labelNode)
+                .to(dur, { scale: new Vec3(base.x * 1.35, base.y * 1.35, 1) }, { easing: 'quadOut' })
+                .to(dur * 0.85, { scale: new Vec3(0, 0, 1) }, { easing: 'backIn' })
+                .start();
+            const t2 = tween(op)
+                .delay(dur * 0.4)
+                .to(dur * 0.85, { opacity: 0 })
+                .call(() => {
+                    this.setMultiplier(null);
+                    labelNode.setScale(1, 1, 1);
+                    op.opacity = 255;
+                    finish();
+                })
+                .start();
+            return () => {
+                t1.stop();
+                t2.stop();
+                this.setMultiplier(null);
+                if (labelNode.isValid) {
+                    labelNode.setScale(1, 1, 1);
+                    op.opacity = 255;
+                }
+            };
+        });
+    }
+
     /** 中奖动画：符号自身（SymbolTemplate / spine winAnim）+ 中奖音效 + 格子特效并行 */
     buildWinAnim(): IAnim | null {
         if (this.currentId === null) return null;
