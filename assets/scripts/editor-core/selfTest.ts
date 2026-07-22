@@ -3,12 +3,20 @@
  * 返回 { ok, failures }；每条断言失败都收集，不抛异常中断。
  */
 
-import { makeEmptyDoc, makeEmptyState, validateDoc, serializeDoc, deserializeDoc } from './session';
+import {
+    makeEmptyDoc,
+    makeEmptyState,
+    validateDoc,
+    serializeDoc,
+    deserializeDoc,
+    resizeColumnVisibleRows,
+} from './session';
 import {
     AddStateCommand,
     RemoveStateCommand,
     SetResolvedCellCommand,
     SetFrameKindCommand,
+    SetColumnVisibleRowsCommand,
     CommandHistory,
 } from './commands';
 import { readFrameExt } from './frameExt';
@@ -76,6 +84,53 @@ export function runEditorCoreSelfTest(): SelfTestResult {
     // 6. makeEmptyState 各 frameKind 不变式
     const reveal = makeEmptyState({ sessionId: 's', cols: 3, rows: 3, frameKind: 'reveal' });
     check('reveal phase', reveal.phase === 'consequence');
+
+    // 7. 每帧、每列可变 visibleRows（吕布类变数盘面的 SPIR 语义）
+    const ragged = makeEmptyState({
+        sessionId: 'ragged',
+        cols: 6,
+        visibleRows: [7, 5, 3, 6, 2, 4],
+        frameKind: 'reveal',
+    });
+    check('ragged topology preserved', ragged.board.topology.visibleRows.join(',') === '7,5,3,6,2,4');
+    check(
+        'ragged grid dims',
+        ragged.board.resolved.map((col) => col.length).join(',') === '7,5,3,6,2,4',
+    );
+    check('ragged state valid', validateDoc({ docVersion: 1, id: 'r', name: 'r', states: [ragged] }).length === 0);
+
+    const raggedNext = makeEmptyState({
+        sessionId: 'ragged',
+        cols: 6,
+        visibleRows: [2, 4, 7, 3, 6, 5],
+        frameKind: 'reveal',
+    });
+    const raggedDoc = { docVersion: 1 as const, id: 'ragged', name: 'ragged', states: [ragged, raggedNext] };
+    const raggedRestored = deserializeDoc(serializeDoc(raggedDoc));
+    check(
+        'per-frame topology roundtrip',
+        raggedRestored.states[0].board.topology.visibleRows[0] === 7 &&
+            raggedRestored.states[1].board.topology.visibleRows[0] === 2,
+    );
+    check('per-frame topology valid', validateDoc(raggedRestored).length === 0);
+
+    // 8. 列高伸缩 + 命令 undo
+    const heightDoc = makeEmptyDoc('doc_h', '列高', 6, [7, 7, 7, 7, 7, 7]);
+    heightDoc.states[0].board.resolved[0][6].symbolId = 8;
+    resizeColumnVisibleRows(heightDoc.states[0], 0, 4);
+    check('resize shrink rows', heightDoc.states[0].board.topology.visibleRows[0] === 4);
+    check('resize shrink drops bottom', heightDoc.states[0].board.resolved[0].length === 4);
+    check('resize shrink drops symbol', heightDoc.states[0].board.resolved[0].every((c) => c.symbolId === null));
+    resizeColumnVisibleRows(heightDoc.states[0], 0, 6);
+    check('resize grow rows', heightDoc.states[0].board.topology.visibleRows[0] === 6);
+    check('resize grow length', heightDoc.states[0].board.resolved[0].length === 6);
+
+    const hHist = new CommandHistory(heightDoc);
+    hHist.execute(new SetColumnVisibleRowsCommand(0, 1, 3));
+    check('cmd set col rows', heightDoc.states[0].board.topology.visibleRows[1] === 3);
+    hHist.undo();
+    check('cmd undo col rows', heightDoc.states[0].board.topology.visibleRows[1] === 7);
+    check('height doc valid', validateDoc(heightDoc).length === 0);
 
     return { ok: failures.length === 0, total, failures };
 }

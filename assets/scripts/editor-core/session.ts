@@ -29,11 +29,24 @@ export interface DocValidationIssue {
 // 工厂
 // ============================================================================
 
-export function makeGrid(cols: number, rows: number, symbolId: number | null = null): SymbolGrid {
+/**
+ * 创建规则或非等高网格。
+ *
+ * rows 传 number 时保持旧行为（每列等高）；传 number[] 时按列创建 ragged grid。
+ */
+export function makeGrid(
+    cols: number,
+    rows: number | readonly number[],
+    symbolId: number | null = null,
+): SymbolGrid {
+    const rowCounts = normalizeVisibleRows(
+        cols,
+        typeof rows === 'number' ? Array.from({ length: cols }, () => rows) : rows,
+    );
     const grid: SymbolGrid = [];
     for (let c = 0; c < cols; c++) {
         const col: Cell[] = [];
-        for (let r = 0; r < rows; r++) {
+        for (let r = 0; r < rowCounts[c]!; r++) {
             col.push({ symbolId, entityRef: null });
         }
         grid.push(col);
@@ -41,23 +54,41 @@ export function makeGrid(cols: number, rows: number, symbolId: number | null = n
     return grid;
 }
 
-export interface MakeStateOptions {
+interface MakeStateBaseOptions {
     sessionId: string;
     cols: number;
-    rows: number;
     frameKind: IrFrameKind;
     cascadeIndex?: number;
     frameIndex?: number;
     fillSymbolId?: number | null;
 }
 
+/** 等高 rows 与逐列 visibleRows 在类型上互斥，避免产生两个真源。 */
+export type MakeStateOptions = MakeStateBaseOptions &
+    (
+        | {
+              /** 等高盘面的行数。保留用于兼容赛特等现有调用。 */
+              rows: number;
+              visibleRows?: never;
+          }
+        | {
+              /**
+               * 当前帧每列的逻辑位置数，允许相邻 state 使用不同数组。
+               * 例：[7,5,3,6,2,4]。
+               */
+              rows?: never;
+              visibleRows: readonly number[];
+          }
+    );
+
 /** 生成一个结构合法的最小 PresentationState */
 export function makeEmptyState(opts: MakeStateOptions): PresentationState {
-    const { sessionId, cols, rows, frameKind } = opts;
-    const visibleRows: number[] = [];
+    const { sessionId, cols, frameKind } = opts;
+    const visibleRows = opts.visibleRows
+        ? normalizeVisibleRows(cols, opts.visibleRows)
+        : normalizeVisibleRows(cols, Array.from({ length: cols }, () => opts.rows));
     const extra: number[] = [];
     for (let c = 0; c < cols; c++) {
-        visibleRows.push(rows);
         extra.push(0);
     }
     const state: PresentationState = {
@@ -65,8 +96,8 @@ export function makeEmptyState(opts: MakeStateOptions): PresentationState {
         sessionId,
         board: {
             topology: { cols, visibleRows, extraTop: extra.slice(), extraBottom: extra.slice() },
-            display: makeGrid(cols, rows, opts.fillSymbolId ?? null),
-            resolved: makeGrid(cols, rows, opts.fillSymbolId ?? null),
+            display: makeGrid(cols, visibleRows, opts.fillSymbolId ?? null),
+            resolved: makeGrid(cols, visibleRows, opts.fillSymbolId ?? null),
             entities: {},
             anchors: { locks: new Set<string>(), sticks: new Set<string>() },
             overlays: [],
@@ -83,6 +114,21 @@ export function makeEmptyState(opts: MakeStateOptions): PresentationState {
         frameKind,
     });
     return state;
+}
+
+function normalizeVisibleRows(cols: number, rows: readonly number[]): number[] {
+    if (!Number.isInteger(cols) || cols < 1) {
+        throw new Error(`cols 必须是正整数，收到 ${String(cols)}`);
+    }
+    if (rows.length !== cols) {
+        throw new Error(`visibleRows 长度 ${rows.length} 必须等于 cols ${cols}`);
+    }
+    return rows.map((value, col) => {
+        if (!Number.isInteger(value) || value < 1) {
+            throw new Error(`visibleRows[${col}] 必须是 >= 1 的整数，收到 ${String(value)}`);
+        }
+        return value;
+    });
 }
 
 /**
@@ -235,13 +281,74 @@ export function makeMultiCollectedState(source: PresentationState): Presentation
     return next;
 }
 
-export function makeEmptyDoc(id: string, name: string, cols: number, rows: number): EditorDoc {
+/** rows 可传统一行数或逐列 visibleRows。 */
+export function makeEmptyDoc(
+    id: string,
+    name: string,
+    cols: number,
+    rows: number | readonly number[],
+): EditorDoc {
     return {
         docVersion: 1,
         id,
         name,
-        states: [makeEmptyState({ sessionId: id, cols, rows, frameKind: 'enter-table' })],
+        states: [
+            makeEmptyState({
+                sessionId: id,
+                cols,
+                ...(typeof rows === 'number' ? { rows } : { visibleRows: rows }),
+                frameKind: 'enter-table',
+            }),
+        ],
     };
+}
+
+/**
+ * 调整某列 visibleRows，并同步 resolved/display 列长度。
+ * 伸长：底部追加空格；缩短：从底部截断并清理越界 entity。
+ */
+export function resizeColumnVisibleRows(state: PresentationState, col: number, nextRows: number): void {
+    const { cols, visibleRows } = state.board.topology;
+    if (!Number.isInteger(col) || col < 0 || col >= cols) {
+        throw new Error(`col 越界：${col}（cols=${cols}）`);
+    }
+    if (!Number.isInteger(nextRows) || nextRows < 1) {
+        throw new Error(`visibleRows[${col}] 必须是 >= 1 的整数，收到 ${String(nextRows)}`);
+    }
+    const prev = visibleRows[col]!;
+    if (nextRows === prev) return;
+
+    visibleRows[col] = nextRows;
+    for (const grid of [state.board.resolved, state.board.display]) {
+        const column = grid[col]!;
+        if (nextRows > prev) {
+            for (let r = prev; r < nextRows; r++) {
+                column.push({ symbolId: null, entityRef: null });
+            }
+        } else {
+            for (let r = nextRows; r < prev; r++) {
+                const cell = column[r];
+                if (cell?.entityRef) delete state.board.entities[cell.entityRef];
+            }
+            column.length = nextRows;
+        }
+    }
+
+    for (const id of Object.keys(state.board.entities)) {
+        const ent = state.board.entities[id];
+        if (!ent) continue;
+        if (ent.anchor.col === col && ent.anchor.row >= nextRows) {
+            delete state.board.entities[id];
+        }
+    }
+    for (let r = 0; r < nextRows; r++) {
+        for (const grid of [state.board.resolved, state.board.display]) {
+            const cell = grid[col]![r]!;
+            if (cell.entityRef && !state.board.entities[cell.entityRef]) {
+                cell.entityRef = null;
+            }
+        }
+    }
 }
 
 // ============================================================================

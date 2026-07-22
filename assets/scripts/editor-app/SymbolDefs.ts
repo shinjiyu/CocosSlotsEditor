@@ -1,13 +1,26 @@
 /**
- * SymbolDefs — SymbolLibrary 的数据类（非 Component，可与库组件分文件共存）。
+ * SymbolDefs — 符号定义（由素材库条目组合而成）。
  *
- * SymbolEntry：一个符号的全部配置，资源直接拖引用（不走路径/约定目录）。
- * CellFxDef：格子级通用特效（中奖高亮框 / 消除爆光等），与符号自身动画并行播放。
- * 所有尺寸都在「设计像素」空间；符号设计尺寸是 SymbolLibrary 上的全局配置
- * （缺省 152×128，不逐符号配置），运行时按 board 格子大小整体等比缩放。
+ * 最小单位是 AssetLibrary 里的素材；SymbolEntry 优先通过 *AssetId 引用素材，
+ * 运行时由 SymbolCatalog + SymbolResolve 解析。直接拖引用字段保留，兼容旧包。
+ * CellFxDef：格子级通用特效；设计像素空间，缺省符号设计尺寸 152×128。
  */
 
-import { _decorator, AudioClip, BitmapFont, Node, Prefab, SpriteFrame, UITransform, Vec2, ccenum, sp } from 'cc';
+import {
+    _decorator,
+    AudioClip,
+    BitmapFont,
+    Color,
+    Material,
+    Node,
+    Prefab,
+    SpriteFrame,
+    Texture2D,
+    UITransform,
+    Vec2,
+    ccenum,
+    sp,
+} from 'cc';
 import { EnterFx } from './symbolFx';
 
 const { ccclass, property } = _decorator;
@@ -29,6 +42,17 @@ ccenum(SymbolKind);
 
 export function isMultiEntry(entry: SymbolEntry | null | undefined): boolean {
     return !!entry && entry.kind === SymbolKind.multi;
+}
+
+/** Runtime-only shared Sprite dissolve. The symbol asset itself remains independent. */
+export interface DissolveFxConfig {
+    material: Material;
+    maskTexture: Texture2D;
+    duration: number;
+    softness: number;
+    edgeWidth: number;
+    edgeGlow: number;
+    edgeColor: Color;
 }
 
 @ccclass('CellFxDef')
@@ -64,6 +88,41 @@ export class CellFxDef {
     }
 }
 
+/**
+ * 同一逻辑符号下的视觉变体。
+ *
+ * key 是资源包内稳定键（如 tier-1）；选择规则不存这里，而由盘面 profile
+ * 根据 columnCount 等上下文决定 key。这样赛特可以不配变体，吕布可配 6 档，
+ * 其它游戏也可使用 orientation / state 等不同键。
+ */
+@ccclass('SymbolVisualVariantDef')
+export class SymbolVisualVariantDef {
+    @property({ tooltip: '包内稳定键，如 tier-1 / tier-2；同一符号内唯一' })
+    key = '';
+
+    @property({ tooltip: '编辑器显示名，如「7个/列 · 112px」' })
+    label = '';
+
+    @property({ tooltip: '该变体使用的 texture 素材 id' })
+    textureAssetId = '';
+
+    @property({ tooltip: '该变体使用的 spine 素材 id（可选）' })
+    spineAssetId = '';
+
+    @property({ tooltip: '该变体使用的 prefab 素材 id（可选）' })
+    prefabAssetId = '';
+
+    /** 由 AssetLibrary 解析；保留直接引用兼容手工配置。 */
+    @property({ type: SpriteFrame })
+    texture: SpriteFrame | null = null;
+
+    @property({ type: sp.SkeletonData })
+    spine: sp.SkeletonData | null = null;
+
+    @property({ type: Prefab })
+    prefab: Prefab | null = null;
+}
+
 @ccclass('SymbolEntry')
 export class SymbolEntry {
     @property({ tooltip: '盘面数据(SPIR Cell.symbolId)引用的稳定 id；不要与其它条目重复' })
@@ -75,16 +134,71 @@ export class SymbolEntry {
     @property({ type: SymbolKind, tooltip: '符号分类：normal=常规；multi=倍率球（不走中奖高亮，可挂倍数字体）' })
     kind = SymbolKind.normal;
 
-    @property({ type: SpriteFrame, tooltip: '静态纹理：无 spine 时的显示，也是刷子面板图标' })
+    @property({ tooltip: '素材库 texture id；非空则覆盖下方直接引用' })
+    textureAssetId = '';
+
+    @property({ tooltip: '素材库 spine id' })
+    spineAssetId = '';
+
+    @property({ tooltip: '素材库 prefab id' })
+    prefabAssetId = '';
+
+    @property({
+        type: [SymbolVisualVariantDef],
+        tooltip: '同一逻辑 id 的视觉变体；选择规则由盘面 profile / placement 决定，空数组表示只有基础素材',
+    })
+    visualVariants: SymbolVisualVariantDef[] = [];
+
+    @property({
+        tooltip: '主盘落盘 recipeId（placement 索引）；空=普通单格。例：column-fill',
+    })
+    placementMainId = '';
+
+    @property({
+        tooltip: '顶条落盘 recipeId（placement 索引）；空=普通单格。例：top-row-span',
+    })
+    placementTopStripId = '';
+
+    @property({
+        tooltip: '顶条 top-row-span 占用格数',
+        min: 1,
+        max: 8,
+    })
+    placementTopStripCells = 2;
+
+    @property({
+        tooltip: '顶条显示用 visualVariant.key（如 top-horizontal-wide）',
+    })
+    placementTopStripVariantKey = '';
+
+    @property({ tooltip: '素材库入场音效 id' })
+    enterSoundAssetId = '';
+
+    @property({ tooltip: '素材库中奖音效 id' })
+    winSoundAssetId = '';
+
+    @property({ tooltip: '素材库消除音效 id' })
+    vanishSoundAssetId = '';
+
+    @property({ tooltip: '素材库倍率字体 id（kind=multi）' })
+    digitFontAssetId = '';
+
+    @property({ tooltip: '素材库中奖格子特效 id（effect）' })
+    winCellFxAssetId = '';
+
+    @property({ tooltip: '素材库消除格子特效 id（effect）' })
+    vanishCellFxAssetId = '';
+
+    @property({ type: SpriteFrame, tooltip: '静态纹理（或由 textureAssetId 解析）：无 spine 时显示 / 刷子图标' })
     texture: SpriteFrame | null = null;
 
-    @property({ type: sp.SkeletonData, tooltip: '骨骼动画；拖入后优先于纹理显示' })
+    @property({ type: sp.SkeletonData, tooltip: '骨骼（或由 spineAssetId 解析）；优先于纹理' })
     spine: sp.SkeletonData | null = null;
 
-    @property({ type: Prefab, tooltip: '特殊符号才用：自定义 prefab（根节点可挂 SymbolTemplate）' })
+    @property({ type: Prefab, tooltip: '特殊符号 prefab（或由 prefabAssetId 解析）' })
     prefab: Prefab | null = null;
 
-    @property({ tooltip: 'spine 常驻循环动画名；空 = 停在 setup pose' })
+    @property({ tooltip: 'spine 常驻循环动画名；空 = setup pose（可继承素材 defaultAnim）' })
     idleAnim = '';
 
     @property({ tooltip: 'spine 入场动画名；空 = 用下方内置入场动效' })
@@ -123,10 +237,10 @@ export class SymbolEntry {
     @property({ type: CellFxDef, tooltip: '本符号专用消除格子特效；spine 留空 = 用全局' })
     vanishCellFx = new CellFxDef();
 
-    /** 内容形态：prefab > spine > 纹理 */
+    /** 内容形态：prefab > spine > 纹理（含未解析的 assetId） */
     get contentKind(): 'prefab' | 'spine' | 'sprite' {
-        if (this.prefab) return 'prefab';
-        if (this.spine) return 'spine';
+        if (this.prefab || this.prefabAssetId) return 'prefab';
+        if (this.spine || this.spineAssetId) return 'spine';
         return 'sprite';
     }
 }
@@ -140,6 +254,8 @@ export interface SymbolProvider {
     /** 解析后的中奖格子特效（条目覆盖 > 全局；无则 null） */
     winCellFxFor(id: number): CellFxDef | null;
     vanishCellFxFor(id: number): CellFxDef | null;
+    /** Optional shared Sprite dissolve; normally supplied by the active resource pack. */
+    vanishDissolveFor?(id: number): DissolveFxConfig | null;
     /** 倍率球位图字（条目覆盖 > 库默认；非 multi 返回 null） */
     digitFontFor?(id: number): BitmapFont | null;
     /** 扩散帧：split 粒子飞弹 + split_B 落地 */

@@ -17,6 +17,16 @@
         "path": "扩展/盘面编辑器",
         "label": "导出 Symbol 包（按盘面，AI 同款）",
         "message": "export-pack-for-ai"
+      },
+      {
+        "path": "扩展/盘面编辑器",
+        "label": "切换 Spine 区 → 3.8（需重启预览）",
+        "message": "switch-spine-38"
+      },
+      {
+        "path": "扩展/盘面编辑器",
+        "label": "切换 Spine 区 → 4.2（需重启预览）",
+        "message": "switch-spine-42"
       }
     ],
     "messages": {
@@ -25,6 +35,12 @@
       },
       "export-pack-for-ai": {
         "methods": ["exportPackForAi"]
+      },
+      "switch-spine-38": {
+        "methods": ["switchSpine38"]
+      },
+      "switch-spine-42": {
+        "methods": ["switchSpine42"]
       }
     }
   }

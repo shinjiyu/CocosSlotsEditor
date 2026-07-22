@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [
+      "../temp/declarations/cc",
+      "../temp/declarations/cc.custom-macro",
+      "../temp/declarations/cc.env",
+      "../temp/declarations/jsb"
+    ]
+  },
+  "files": [
+    "../assets/scripts/editor-app/SymbolEditorMain.ts"
+  ]
+}

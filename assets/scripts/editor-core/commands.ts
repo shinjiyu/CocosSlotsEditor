@@ -8,8 +8,9 @@
 import type { PresentationState } from '../vendor/slot-presentation-ir/index';
 import { deserialize, serialize } from '../vendor/slot-presentation-ir/index';
 import type { EditorDoc } from './session';
+import { resizeColumnVisibleRows } from './session';
 import type { IrFrameKind, IrFrameExtension } from './frameExt';
-import { readFrameExt, writeFrameExt } from './frameExt';
+import { readFrameExt, writeFrameExt, ensureTopStripSymbols } from './frameExt';
 
 export interface EditorCommand {
     readonly label: string;
@@ -38,9 +39,11 @@ export class AddStateCommand implements EditorCommand {
         if (frameKind) {
             const ext = readFrameExt(this.inserted);
             writeFrameExt(this.inserted, {
+                ...(ext ?? { cascadeIndex: 0, frameIndex: 0, frameKind: 'reveal' }),
                 cascadeIndex: ext?.cascadeIndex ?? 0,
                 frameIndex: (ext?.frameIndex ?? 0) + 1,
                 frameKind,
+                topStrip: ext?.topStrip ? ext.topStrip.slice() : ext?.topStrip,
             });
         }
     }
@@ -214,6 +217,39 @@ export class SetFrameKindCommand implements EditorCommand {
     }
 }
 
+/** 调整当前帧某列 visibleRows（伸长追加空底格，缩短截断底格） */
+export class SetColumnVisibleRowsCommand implements EditorCommand {
+    readonly label = 'setColumnVisibleRows';
+    private prevRows = 0;
+    private prevResolvedJson = '';
+    private prevDisplayJson = '';
+    private prevEntitiesJson = '';
+
+    constructor(
+        private stateIndex: number,
+        private col: number,
+        private nextRows: number,
+    ) {}
+
+    apply(doc: EditorDoc): void {
+        const state = doc.states[this.stateIndex];
+        const board = state.board;
+        this.prevRows = board.topology.visibleRows[this.col]!;
+        this.prevResolvedJson = JSON.stringify(board.resolved[this.col]);
+        this.prevDisplayJson = JSON.stringify(board.display[this.col]);
+        this.prevEntitiesJson = JSON.stringify(board.entities);
+        resizeColumnVisibleRows(state, this.col, this.nextRows);
+    }
+
+    revert(doc: EditorDoc): void {
+        const board = doc.states[this.stateIndex].board;
+        board.topology.visibleRows[this.col] = this.prevRows;
+        board.resolved[this.col] = JSON.parse(this.prevResolvedJson);
+        board.display[this.col] = JSON.parse(this.prevDisplayJson);
+        board.entities = JSON.parse(this.prevEntitiesJson);
+    }
+}
+
 /** 修改帧扩展（templateId / templateParams / clearTime…），整体快照回退 */
 export class PatchFrameExtCommand implements EditorCommand {
     readonly label = 'patchFrameExt';
@@ -240,6 +276,46 @@ export class PatchFrameExtCommand implements EditorCommand {
     }
     revert(doc: EditorDoc): void {
         if (this.prev) writeFrameExt(doc.states[this.stateIndex], this.prev);
+    }
+}
+
+/** 顶条独立格（不写主盘 resolved） */
+export class SetTopStripCellCommand implements EditorCommand {
+    readonly label = 'setTopStripCell';
+    private prev: number | null = null;
+
+    constructor(
+        private stateIndex: number,
+        private stripIndex: number,
+        private symbolId: number | null,
+        private stripCount: number,
+    ) {}
+
+    apply(doc: EditorDoc): void {
+        const state = doc.states[this.stateIndex];
+        const ext = readFrameExt(state);
+        const base: IrFrameExtension = ext ?? {
+            cascadeIndex: 0,
+            frameIndex: this.stateIndex,
+            frameKind: 'reveal',
+        };
+        const arr = ensureTopStripSymbols(base, this.stripCount);
+        this.prev = arr[this.stripIndex] ?? null;
+        arr[this.stripIndex] = this.symbolId;
+        writeFrameExt(state, { ...base, topStrip: arr });
+    }
+
+    revert(doc: EditorDoc): void {
+        const state = doc.states[this.stateIndex];
+        const ext = readFrameExt(state);
+        const base: IrFrameExtension = ext ?? {
+            cascadeIndex: 0,
+            frameIndex: this.stateIndex,
+            frameKind: 'reveal',
+        };
+        const arr = ensureTopStripSymbols(base, this.stripCount);
+        arr[this.stripIndex] = this.prev;
+        writeFrameExt(state, { ...base, topStrip: arr });
     }
 }
 

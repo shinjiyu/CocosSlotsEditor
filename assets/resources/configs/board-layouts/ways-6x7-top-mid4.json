@@ -1,0 +1,42 @@
+{
+  "id": "ways-6x7-top-mid4",
+  "name": "Ways 6×7 + 顶条中四格",
+  "sourceNote": "吕布无双；逻辑真源见 assets/scripts/editor-app/board-layout/",
+  "flat": { "cols": 6, "rows": 7, "gridCount": 42 },
+  "topology": {
+    "cols": 6,
+    "visibleRows": [7, 7, 7, 7, 7, 7],
+    "extraTop": [0, 0, 0, 0, 0, 0],
+    "extraBottom": [0, 0, 0, 0, 0, 0]
+  },
+  "topStrip": {
+    "count": 4,
+    "mapToMain": [
+      { "col": 1, "row": 0 },
+      { "col": 2, "row": 0 },
+      { "col": 3, "row": 0 },
+      { "col": 4, "row": 0 }
+    ],
+    "flatIndices": [7, 14, 21, 28]
+  },
+  "roles": {
+    "bonus": 1,
+    "wild": 2,
+    "scatter": 3,
+    "highStart": 4,
+    "maxBaseId": 13
+  },
+  "encoding": {
+    "typeCount": 18,
+    "minHeight": 1,
+    "maxHeight": 6,
+    "formula": "runtimeId = baseId + (height - 1) * typeCount"
+  },
+  "rules": {
+    "topBonusColumnWild": {
+      "minStreak": 2,
+      "requireFirstBonusMoved": true,
+      "skipTopCellsWhenFill": true
+    }
+  }
+}

@@ -3,15 +3,16 @@
  *
  * 模板契约：给 (prev, curr[, next]) 两帧快照 + BoardView，产出一个 IAnim。
  * frameKind ↔ 模板存在兼容约束（KIND_ALLOWED），每个 frameKind 只能选列表内模板，
- * 首项为 auto 默认。例如：
- *   enter-table / reveal → dropIn | noop（屏外落入，下排先落，落地弹跳）
- *   highlight            → symbolWin（符号winAnim+格子特效，缺省回落脉冲）| pulse | noop
- *   postClear            → vanish | dropOut（重力掉出）| noop
- *   compact              → compactFall | noop（列内现有符号下沉补位，无新符号）
- *   expandPre            → pulse | noop（扩散前蓄力脉冲）
- *   expandPost           → multiExpand | noop（倍率球从源格飞入邻格）
- *   multiCollect         → multiCollect | noop（倍率球转动后数字被收集，球保留）
- * 「满盘换新盘」演出 = reveal 前插一个 postClear 全空帧（dropOut）+ reveal（dropIn）。
+ * 首项为 auto 默认。例如（cascade / 赛特）：
+ *   enter-table / reveal → dropIn | noop（屏外落入）
+ *   highlight            → symbolWin | pulse | noop
+ *   postClear            → vanish | dropOut | noop（cascade）；fake-reel 默认 fadeOut
+ *   compact              → compactFall | noop（存活下沉；顶空新符可落入）
+ * 吕布类盘面挂 layout.animStyleId=fake-reel 后：
+ *   reveal→reelSpin，postClear→fadeOut，compact→compactFall，
+ *   expandPost→jiDiffuse（横JI→竖JI），topStep→topStep（横栏左移）。
+ * 「满盘换新盘」cascade-drop = postClear(dropOut) + compact + reveal(dropIn)；
+ * fake-reel = postClear(fadeOut) + compact + reveal(reelSpin)。
  * 帧可用 extensions.frame.templateId / templateParams 在允许范围内覆盖默认模板。
  */
 
@@ -25,6 +26,18 @@ import { readFrameExt } from '../editor-core/index';
 import type { BoardView } from './BoardView';
 import type { BoardEvents, BoardEventType } from './boardEvents';
 import { resolveTrailSprite, spawnBlueTimesTrail } from './SplitParticleFx';
+import { buildReelSpin } from './reelSpin';
+import { buildFadeOut } from './fadeOut';
+import { buildCompactFall } from './compactFall';
+import { buildJiDiffuse } from './jiDiffuse';
+import { buildTopStep } from './topStep';
+import {
+    ANIM_STYLE_CASCADE_DROP,
+    ANIM_STYLE_FAKE_REEL,
+    getAnimStyleMeta,
+    resolveAnimStyleId,
+    type AnimStyleId,
+} from './animStyles';
 
 // ============================================================================
 // 上下文 / 参数
@@ -271,23 +284,8 @@ const dropInTemplate: AnimTemplate = {
 };
 
 // ---------------------------------------------------------------------------
-// compactFall：压缩补位（列内现有符号下沉，无新符号进入）
+// compactFall：压缩补位（存活下沉 + 可选顶部新符落入）
 // ---------------------------------------------------------------------------
-
-interface CompactMove {
-    fromRow: number;
-    toRow: number;
-    symbolId: number;
-}
-
-function columnSymbols(state: PresentationState, col: number, rows: number): Array<{ row: number; id: number }> {
-    const out: Array<{ row: number; id: number }> = [];
-    for (let r = 0; r < rows; r++) {
-        const id = state.board.resolved[col]?.[r]?.symbolId ?? null;
-        if (id !== null) out.push({ row: r, id });
-    }
-    return out;
-}
 
 const compactFallTemplate: AnimTemplate = {
     id: 'compactFall',
@@ -300,79 +298,7 @@ const compactFallTemplate: AnimTemplate = {
         { key: 'bounceDuration', label: '弹跳时长(s)', type: 'number', min: 0, max: 0.5, step: 0.02 },
     ],
     build(ctx: TemplateContext): IAnim {
-        const { boardView, prev, curr, params } = ctx;
-        const maxDur = num(params, 'fallDuration', 0.3);
-        const colStagger = num(params, 'colStagger', 0);
-        const bouncePx = num(params, 'bouncePx', 14);
-        const bounceDur = num(params, 'bounceDuration', 0.1);
-        const { cols, visibleRows } = curr.board.topology;
-        const rows = Math.max(...visibleRows);
-
-        // 逐列配对：prev 非空序列（自上而下保序）必须与 curr 非空序列一致，否则该列降级为直接切帧
-        const perCol: Array<{ col: number; moves: CompactMove[] } | { col: number; invalid: true }> = [];
-        let maxDistRows = 1;
-        for (let c = 0; c < cols; c++) {
-            const pv = columnSymbols(prev, c, visibleRows[c]);
-            const cv = columnSymbols(curr, c, visibleRows[c]);
-            const paired = pv.length === cv.length && pv.every((s, i) => s.id === cv[i].id);
-            if (!paired) {
-                console.warn(`[compactFall] 列 ${c} 前后帧不构成压缩关系（符号序列不一致），该列直接切帧`);
-                perCol.push({ col: c, invalid: true });
-                continue;
-            }
-            const moves = pv
-                .map((s, i) => ({ fromRow: s.row, toRow: cv[i].row, symbolId: s.id }))
-                .filter((m) => m.fromRow !== m.toRow);
-            for (const m of moves) maxDistRows = Math.max(maxDistRows, m.toRow - m.fromRow);
-            perCol.push({ col: c, moves });
-        }
-
-        const colAnims: IAnim[] = [];
-        for (const entry of perCol) {
-            const c = entry.col;
-            if ('invalid' in entry) {
-                colAnims.push(
-                    call(() => {
-                        for (let r = 0; r < visibleRows[c]; r++) {
-                            boardView.applyCell(c, r, curr.board.resolved[c]?.[r]?.symbolId ?? null);
-                        }
-                    }),
-                );
-                continue;
-            }
-            if (!entry.moves.length) continue;
-            const tweens: IAnim[] = entry.moves.map((m) => {
-                const node = boardView.getCellNode(c, m.toRow);
-                if (!node) return call(() => undefined);
-                const to = boardView.cellPosition(c, m.toRow, cols, rows);
-                const dur = maxDur * ((m.toRow - m.fromRow) / maxDistRows);
-                return tweenStep(node, (t) => {
-                    let tw = t.to(dur, { position: new Vec3(to.x, to.y, 0) }, { easing: 'quadIn' });
-                    if (bouncePx > 0 && bounceDur > 0) {
-                        tw = tw
-                            .to(bounceDur * 0.5, { position: new Vec3(to.x, to.y + bouncePx, 0) }, { easing: 'quadOut' })
-                            .to(bounceDur * 0.5, { position: new Vec3(to.x, to.y, 0) }, { easing: 'quadIn' });
-                    }
-                    return tw;
-                });
-            });
-            colAnims.push(
-                seq(
-                    delay(c * colStagger),
-                    // 同一列的清源/摆目标放同一个 call，避免源格与目标格重叠时相互覆盖
-                    call(() => {
-                        for (const m of entry.moves) boardView.applyCell(c, m.fromRow, null);
-                        for (const m of entry.moves) {
-                            boardView.applyCell(c, m.toRow, m.symbolId);
-                            const from = boardView.cellPosition(c, m.fromRow, cols, rows);
-                            boardView.getCellNode(c, m.toRow)?.setPosition(from.x, from.y, 0);
-                        }
-                    }),
-                    par(...tweens),
-                ),
-            );
-        }
-        return par(...colAnims);
+        return buildCompactFall(ctx);
     },
 };
 
@@ -858,12 +784,13 @@ const multiCollectTemplate: AnimTemplate = {
         { key: 'stagger', label: '交错(s)', type: 'number', min: 0, max: 0.3, step: 0.01 },
     ],
     build(ctx: TemplateContext): IAnim {
-        const { boardView, curr, params } = ctx;
+        const { boardView, prev, curr, params } = ctx;
         const stagger = num(params, 'stagger', 0.04);
-        // 使用「当前帧」(curr) 上的全部倍率球
-        const collects = collectAllMultiBallsOnFrame(curr);
+        // 数字在 prev；curr 应为已收集（清掉 multiplier）。curr 误留数字时仍从 prev 取采集值。
+        let collects = collectAllMultiBallsOnFrame(prev);
+        if (!collects.length) collects = collectAllMultiBallsOnFrame(curr);
         if (!collects.length) {
-            return call(() => boardView.render(curr));
+            return call(() => boardView.render(curr, { suppressMultiDigits: true }));
         }
 
         // 播转移时 Director 会先渲染 prev；若 curr 已清掉数字，先把数字贴回再演收集
@@ -891,7 +818,58 @@ const multiCollectTemplate: AnimTemplate = {
                 ),
             );
         });
-        return seq(ensureDigits, par(...steps));
+        // 收尾再刷一次 curr 并压制数字，防止中途并行步骤写回
+        const settle = call(() => boardView.render(curr, { suppressMultiDigits: true }));
+        return seq(ensureDigits, par(...steps), settle);
+    },
+};
+
+const fadeOutTemplate: AnimTemplate = {
+    id: 'fadeOut',
+    label: '淡出消除',
+    defaultParams: { duration: 0.28, stagger: 0.02, scaleTo: 0.88 },
+    paramSchema: [
+        { key: 'duration', label: '时长(s)', type: 'number', min: 0.05, max: 1.5, step: 0.05 },
+        { key: 'stagger', label: '交错(s)', type: 'number', min: 0, max: 0.3, step: 0.01 },
+        { key: 'scaleTo', label: '缩到', type: 'number', min: 0.5, max: 1, step: 0.02 },
+    ],
+    build(ctx: TemplateContext): IAnim {
+        return buildFadeOut(ctx);
+    },
+};
+
+const jiDiffuseTemplate: AnimTemplate = {
+    id: 'jiDiffuse',
+    label: '戟扩散(横→竖)',
+    defaultParams: {},
+    paramSchema: [],
+    build(ctx: TemplateContext): IAnim {
+        return buildJiDiffuse(ctx);
+    },
+};
+
+const topStepTemplate: AnimTemplate = {
+    id: 'topStep',
+    label: '横栏左移一格',
+    defaultParams: { duration: 0.35 },
+    paramSchema: [{ key: 'duration', label: '时长(s)', type: 'number', min: 0.08, max: 1.5, step: 0.05 }],
+    build(ctx: TemplateContext): IAnim {
+        return buildTopStep(ctx);
+    },
+};
+
+const reelSpinTemplate: AnimTemplate = {
+    id: 'reelSpin',
+    label: '假轮带滚停',
+    defaultParams: { duration: 1.15, colStagger: 0.08, minCycles: 2, maxCycles: 4 },
+    paramSchema: [
+        { key: 'duration', label: '时长(s)', type: 'number', min: 0.15, max: 4, step: 0.05 },
+        { key: 'colStagger', label: '列交错(s)', type: 'number', min: 0, max: 0.5, step: 0.01 },
+        { key: 'minCycles', label: '最少圈(列高)', type: 'number', min: 1, max: 8, step: 1 },
+        { key: 'maxCycles', label: '最多圈(列高)', type: 'number', min: 1, max: 8, step: 1 },
+    ],
+    build(ctx: TemplateContext): IAnim {
+        return buildReelSpin(ctx);
     },
 };
 
@@ -910,6 +888,10 @@ const noopTemplate: AnimTemplate = {
 // ============================================================================
 
 const TEMPLATES: Record<string, AnimTemplate> = {
+    reelSpin: reelSpinTemplate,
+    fadeOut: fadeOutTemplate,
+    jiDiffuse: jiDiffuseTemplate,
+    topStep: topStepTemplate,
     dropIn: dropInTemplate,
     dropOut: dropOutTemplate,
     compactFall: compactFallTemplate,
@@ -923,7 +905,7 @@ const TEMPLATES: Record<string, AnimTemplate> = {
 
 /**
  * frameKind → 允许的模板列表（兼容表）。
- * 第一项为该 frameKind 的默认（auto）模板；override 只能在列表内选。
+ * 第一项为 cascade-drop 默认；fake-reel 由 allowedTemplateIds 置顶 reelSpin / fadeOut / jiDiffuse。
  */
 const KIND_ALLOWED: Record<IrFrameKind, string[]> = {
     'enter-table': ['dropIn', 'noop'],
@@ -932,13 +914,23 @@ const KIND_ALLOWED: Record<IrFrameKind, string[]> = {
     highlight: ['symbolWin', 'pulse', 'noop'],
     'bonus-highlight': ['symbolWin', 'pulse', 'noop'],
     'enter-table-mid-cascade': ['dropIn', 'noop'],
-    postClear: ['vanish', 'dropOut', 'noop'],
+    postClear: ['vanish', 'dropOut', 'fadeOut', 'noop'],
     compact: ['compactFall', 'noop'],
     expandPre: ['pulse', 'noop'],
-    expandPost: ['multiExpand', 'noop'],
+    expandPost: ['multiExpand', 'jiDiffuse', 'noop'],
+    topStep: ['topStep', 'noop'],
     multiCollect: ['multiCollect', 'noop'],
     spinEnd: ['noop', 'pulse'],
 };
+
+/** @deprecated 用 AnimStyleId；保留别名避免外部断引用 */
+export type AnimTemplateStyle = AnimStyleId;
+
+export function animStyleFromBoardView(
+    boardView: { getLayoutProfile(): { animStyleId?: string } | null } | null | undefined,
+): AnimStyleId {
+    return resolveAnimStyleId(boardView?.getLayoutProfile()?.animStyleId);
+}
 
 export function getTemplate(id: string): AnimTemplate | null {
     return TEMPLATES[id] ?? null;
@@ -948,23 +940,44 @@ export function allTemplates(): AnimTemplate[] {
     return Object.values(TEMPLATES);
 }
 
-/** 某 frameKind 允许的模板 id 列表（首项为默认） */
-export function allowedTemplateIds(kind: IrFrameKind): string[] {
-    return KIND_ALLOWED[kind] ?? ['noop'];
+/** 某 frameKind 允许的模板 id 列表（首项为当前风格的默认） */
+export function allowedTemplateIds(kind: IrFrameKind, style: AnimStyleId = ANIM_STYLE_CASCADE_DROP): string[] {
+    const base = KIND_ALLOWED[kind] ?? ['noop'];
+    const meta = getAnimStyleMeta(style);
+    if (style === ANIM_STYLE_FAKE_REEL && meta.reelRevealKinds?.includes(kind)) {
+        const def = meta.defaultRevealTemplateId ?? 'reelSpin';
+        return [def, ...base.filter((id) => id !== def)];
+    }
+    if (style === ANIM_STYLE_FAKE_REEL && kind === 'postClear' && meta.defaultPostClearTemplateId) {
+        const def = meta.defaultPostClearTemplateId;
+        return [def, ...base.filter((id) => id !== def)];
+    }
+    if (style === ANIM_STYLE_FAKE_REEL && kind === 'expandPost' && meta.defaultExpandPostTemplateId) {
+        const def = meta.defaultExpandPostTemplateId;
+        return [def, ...base.filter((id) => id !== def)];
+    }
+    return base;
 }
 
-/** override 对该 frameKind 是否合法 */
-export function isTemplateAllowed(kind: IrFrameKind, templateId: string): boolean {
-    return allowedTemplateIds(kind).includes(templateId);
+/** override 对该 frameKind + 风格是否合法 */
+export function isTemplateAllowed(
+    kind: IrFrameKind,
+    templateId: string,
+    style: AnimStyleId = ANIM_STYLE_CASCADE_DROP,
+): boolean {
+    return allowedTemplateIds(kind, style).includes(templateId);
 }
 
 /** 按帧的 frameKind + templateId override 解析模板与参数（非法 override 回落默认） */
-export function resolveTemplateForState(state: PresentationState): {
+export function resolveTemplateForState(
+    state: PresentationState,
+    style: AnimStyleId = ANIM_STYLE_CASCADE_DROP,
+): {
     template: AnimTemplate;
     params: Record<string, unknown>;
 } {
     const ext = readFrameExt(state);
-    const allowed = ext ? allowedTemplateIds(ext.frameKind) : ['noop'];
+    const allowed = ext ? allowedTemplateIds(ext.frameKind, style) : ['noop'];
     const overrideId = ext?.templateId;
     const effectiveId = overrideId && allowed.includes(overrideId) ? overrideId : allowed[0];
     const template = TEMPLATES[effectiveId] ?? noopTemplate;

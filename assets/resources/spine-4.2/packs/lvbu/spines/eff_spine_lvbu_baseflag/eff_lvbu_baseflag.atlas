@@ -1,0 +1,9 @@
+eff_lvbu_baseflag.png
+size:512,128
+filter:Linear,Linear
+pma:true
+flag
+bounds:2,2,190,116
+flag_r
+bounds:189,4,188,114
+rotate:180

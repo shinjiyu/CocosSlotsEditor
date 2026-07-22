@@ -23,6 +23,7 @@ const RUNTIME_SCRIPTS = [
     'assets/scripts/editor-app/SymbolTemplate.ts',
     'assets/scripts/editor-app/SymbolCatalog.ts',
     'assets/scripts/editor-app/GamePack.ts',
+    'assets/scripts/editor-app/SpineZone.ts',
     'assets/scripts/editor-app/symbolFx.ts',
     'assets/scripts/editor-app/sfx.ts',
     'assets/scripts/editor-app/boardEvents.ts',
@@ -72,32 +73,43 @@ function collectUsedSymbolIds(doc) {
     return [...used].sort((a, b) => a - b);
 }
 
-function resolveLibraryPrefab(projectRoot, gameId) {
-    const gamesRoot = path.join(projectRoot, 'assets/resources/games');
-    if (gameId) {
-        const p = path.join(gamesRoot, gameId, 'symbol-library.prefab');
-        if (fs.existsSync(p)) return p;
-        throw new Error(`找不到 games/${gameId}/symbol-library.prefab`);
+function resolveLibraryPrefab(projectRoot, packId) {
+    const resourcesRoot = path.join(projectRoot, 'assets/resources');
+    const zoneRoots = ['spine-3.8/packs', 'spine-4.2/packs', 'games'].map((r) =>
+        path.join(resourcesRoot, r),
+    );
+
+    if (packId) {
+        for (const root of zoneRoots) {
+            const p = path.join(root, packId, 'symbol-library.prefab');
+            if (fs.existsSync(p)) return p;
+        }
+        throw new Error(`找不到 packs/${packId}/symbol-library.prefab（已查 spine-*/packs 与旧 games/）`);
     }
-    const legacy = path.join(projectRoot, 'assets/resources/symbol-library.prefab');
+    const legacy = path.join(resourcesRoot, 'symbol-library.prefab');
     if (fs.existsSync(legacy)) return legacy;
-    if (fs.existsSync(gamesRoot)) {
+    for (const root of zoneRoots) {
+        if (!fs.existsSync(root)) continue;
         const dirs = fs
-            .readdirSync(gamesRoot, { withFileTypes: true })
+            .readdirSync(root, { withFileTypes: true })
             .filter((d) => d.isDirectory())
             .map((d) => d.name)
             .sort();
         for (const id of dirs) {
-            const cand = path.join(gamesRoot, id, 'symbol-library.prefab');
+            const cand = path.join(root, id, 'symbol-library.prefab');
             if (fs.existsSync(cand)) return cand;
         }
     }
-    throw new Error('找不到 symbol-library.prefab（期望 assets/resources/games/<gameId>/ 或旧根路径）');
+    throw new Error(
+        '找不到 symbol-library.prefab（期望 assets/resources/spine-*/packs/<packId>/ 或旧 games/）',
+    );
 }
 
 function inferGameId(rootPrefab, projectRoot) {
     const rel = path.relative(projectRoot, rootPrefab).replace(/\\/g, '/');
-    const m = rel.match(/^assets\/resources\/games\/([^/]+)\//);
+    const m =
+        rel.match(/^assets\/resources\/spine-(?:3\.8|4\.2)\/packs\/([^/]+)\//) ||
+        rel.match(/^assets\/resources\/games\/([^/]+)\//);
     return m ? m[1] : '';
 }
 
@@ -405,6 +417,35 @@ async function exportPack(opts = {}) {
                 copyDirWithMeta(path.dirname(info.file));
             } else if (info.type === 'cc.Prefab') {
                 queue.push(info.file);
+            } else if (info.type === 'cc.BitmapFont') {
+                // .fnt 单独 uuid；atlas png 在 meta.userData.textureUuid / 同目录 atlasName
+                copyFileWithMeta(info.file);
+                try {
+                    const metaPath = `${info.file}.meta`;
+                    if (fs.existsSync(metaPath)) {
+                        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                        const texUuid = meta?.userData?.textureUuid
+                            ? String(meta.userData.textureUuid).split('@')[0]
+                            : '';
+                        if (texUuid && !visitedUuids.has(texUuid)) {
+                            visitedUuids.add(texUuid);
+                            const texInfo = await Editor.Message.request(
+                                'asset-db',
+                                'query-asset-info',
+                                texUuid,
+                            );
+                            if (texInfo?.file) copyFileWithMeta(texInfo.file);
+                            else warnings.push(`BitmapFont atlas uuid 无法解析: ${texUuid}`);
+                        }
+                        const atlasName = meta?.userData?._fntConfig?.atlasName;
+                        if (atlasName) {
+                            const sibling = path.join(path.dirname(info.file), atlasName);
+                            if (fs.existsSync(sibling)) copyFileWithMeta(sibling);
+                        }
+                    }
+                } catch (e) {
+                    warnings.push(`BitmapFont 依赖收集失败: ${e.message || e}`);
+                }
             } else {
                 copyFileWithMeta(info.file);
             }

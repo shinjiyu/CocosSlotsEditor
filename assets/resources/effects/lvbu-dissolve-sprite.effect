@@ -1,0 +1,99 @@
+// Shared Sprite dissolve used by the LvBu symbol pack.
+// The symbol texture remains independent; the board renderer supplies its crop.
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: lvbu-dissolve-vs:vert
+      frag: lvbu-dissolve-fs:frag
+      depthStencilState:
+        depthTest: false
+        depthWrite: false
+      rasterizerState: { cullMode: none }
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: one
+          blendDst: one_minus_src_alpha
+          blendSrcAlpha: one
+          blendDstAlpha: one_minus_src_alpha
+      properties:
+        maskTexture: { value: white }
+        maskTextureST: { value: [1, 1, 0, 0] }
+        mainColor: { value: [1, 1, 1, 1], editor: { type: color } }
+        edgeColor: { value: [1, 0.24, 0.03, 1], editor: { type: color } }
+        dissolve: { value: 0, target: params.x, editor: { slide: true, range: [0, 1], step: 0.01 } }
+        softness: { value: 0.04, target: params.y, editor: { slide: true, range: [0.005, 0.4], step: 0.005 } }
+        edgeWidth: { value: 0.12, target: params.z, editor: { slide: true, range: [0, 0.4], step: 0.005 } }
+        edgeGlow: { value: 2.2, target: params.w, editor: { slide: true, range: [0, 8], step: 0.1 } }
+}%
+
+CCProgram lvbu-dissolve-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USE_LOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 v_color;
+  out vec2 v_uv;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1.0);
+    #if USE_LOCAL
+      pos = cc_matWorld * pos;
+    #endif
+    v_uv = a_texCoord;
+    v_color = a_color;
+    return cc_matViewProj * pos;
+  }
+}%
+
+CCProgram lvbu-dissolve-fs %{
+  precision highp float;
+  #include <legacy/output>
+  #include <builtin/internal/embedded-alpha>
+  #include <common/color/gamma>
+
+  in vec4 v_color;
+  in vec2 v_uv;
+
+  #pragma builtin(local)
+  layout(set = 2, binding = 12) uniform sampler2D cc_spriteTexture;
+  uniform sampler2D maskTexture;
+
+  uniform Constants {
+    vec4 mainColor;
+    vec4 edgeColor;
+    vec4 maskTextureST;
+    vec4 params; // dissolve, softness, edge width, edge glow
+  };
+
+  vec4 frag () {
+    vec4 tex = CCSampleWithAlphaSeparated(cc_spriteTexture, v_uv);
+    vec2 maskUV = v_uv * maskTextureST.xy + maskTextureST.zw;
+    float noise = texture(maskTexture, maskUV).r;
+
+    float soft = max(params.y, 0.005);
+    float edge = max(params.z, 0.0);
+    float threshold = mix(-soft - edge, 1.0 + soft, params.x);
+    float visibleMask = smoothstep(threshold, threshold + soft, noise);
+    float hotOuter = smoothstep(threshold, threshold + soft, noise);
+    float hotInner = smoothstep(threshold + edge, threshold + edge + soft, noise);
+    float hotBand = clamp(hotOuter - hotInner, 0.0, 1.0);
+
+    float alpha = tex.a * v_color.a * mainColor.a * visibleMask;
+    vec3 baseRgb = tex.rgb * v_color.rgb * mainColor.rgb;
+    vec3 hotRgb = edgeColor.rgb * edgeColor.a * params.w;
+    vec3 rgb = mix(baseRgb, hotRgb, hotBand) * alpha;
+
+    #if USE_GAMMA_TO_LINEAR
+      rgb = SRGBToLinear(rgb);
+    #endif
+    return CCFragOutput(vec4(rgb, alpha));
+  }
+}%

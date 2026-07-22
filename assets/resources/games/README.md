@@ -1,17 +1,8 @@
-# games/<gameId>/
+# （已废弃）games/
 
-每个游戏包目录自洽，可在同一 symbolEditor 工程并存：
+请改用按 Spine 运行时分区的目录：
 
-```
-games/<gameId>/
-  symbol-library.prefab   # SymbolLibrary 配置（必选）
-  symbols/                # 静态贴图（可选）
-  oriSymbols/             # Spine 符号（可选）
-  font/                   # 位图字等（可选）
-  effects/                # 格子特效等（可选）
-```
+- `../spine-3.8/packs/<packId>/`
+- `../spine-4.2/packs/<packId>/`
 
-登记：编辑 `assets/scripts/editor-app/GamePack.ts` 的 `GAME_PACKS`。
-编辑器 Inspector「游戏包」◀▶ 切换；选择会写入 localStorage。
-
-当前包：`golden-seth`
+详见 `../spine-3.8/README.md`。`golden-seth` 已迁至 `spine-3.8/packs/golden-seth/`。

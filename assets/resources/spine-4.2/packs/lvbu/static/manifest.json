@@ -1,0 +1,1427 @@
+{
+  "version": 1,
+  "packId": "lvbu",
+  "policy": {
+    "logicalSymbolCount": 17,
+    "canonicalAssetPerSymbol": true,
+    "runtimeTierAssets": true,
+    "cropOwner": "board renderer",
+    "originalTierRule": "Unity tiers are independent precomposed PNGs (112/130/156/196/262/392), not exact crops.",
+    "smallSymbolStrategy": {
+      "preferred": "tier-switch",
+      "mapping": "columnCount 7→tier1(112), 6→2(130), 5→3(156), 4→4(196), 3→5(262), 2→6(392)",
+      "fallback": "uniform scale of tallest canonical sprite into cell",
+      "note": "Never create 6 SymbolEntry per logical id. Board picks SpriteFrame by column occupancy."
+    },
+    "bonusOrientation": {
+      "vertical": "symbols/01-bonus.png (icon_1_1)",
+      "horizontal": "symbols/01-bonus-horizontal.png (icon_1)",
+      "horizontalWide": "symbols/01-bonus-horizontal-wide.png (icon_1_2)"
+    },
+    "winFx": {
+      "status": "placeholder",
+      "note": "Unity 高亮/消除特效逐像素还原已放弃（多层发光 + 湍流 shader + ParticleSystem，静态贴图无法复现）。运行时用 scripts/editor-app/PlaceholderFx.ts 占位。"
+    }
+  },
+  "symbols": [
+    {
+      "id": 1,
+      "name": "bonus",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1_1.png",
+      "extractHash": "19d7457c83700da4f9b55f3d9be7721d",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/01-bonus.png",
+      "bytes": 426478,
+      "tiers": [],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1_2.png"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "wild",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_6.png",
+      "extractHash": "4144fb686e8bccc4ca8c7164b688c265",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/02-wild.png",
+      "bytes": 189052,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_1.png",
+          "extractHash": "dc9689d2a0e52e548a8286da4d4913c6",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-1.png",
+          "bytes": 55863
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_2.png",
+          "extractHash": "74e6aef0e86a93f49824a9a08d960e85",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-2.png",
+          "bytes": 68101
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_3.png",
+          "extractHash": "6c3013fe1317b4449a400d45d9e41c46",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-3.png",
+          "bytes": 81192
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_4.png",
+          "extractHash": "3acbfddd1c56a814c80625e20dae70f2",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-4.png",
+          "bytes": 98414
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_5.png",
+          "extractHash": "4c4125409a8bb5f4fbc5ed5ef30390a6",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-5.png",
+          "bytes": 134884
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_6.png",
+          "extractHash": "4144fb686e8bccc4ca8c7164b688c265",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/02-wild/tier-6.png",
+          "bytes": 189052
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_2_6.png"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "scatter",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_6.png",
+      "extractHash": "f26c98b6363b27745b649370a0258ae7",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/03-scatter.png",
+      "bytes": 250091,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_1.png",
+          "extractHash": "e3eb262792562b0489940d2c411b34c5",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-1.png",
+          "bytes": 87052
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_2.png",
+          "extractHash": "1559d556096f51a4da810d95236d2a5a",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-2.png",
+          "bytes": 95713
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_3.png",
+          "extractHash": "5c32f67cc5545f74eb8f761fd1773347",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-3.png",
+          "bytes": 110598
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_4.png",
+          "extractHash": "2eab017a7e8ac7c40aadf43246ca6311",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-4.png",
+          "bytes": 134678
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_5.png",
+          "extractHash": "43d5abbcf7ce9ae4c8413671d96a4a7b",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-5.png",
+          "bytes": 176724
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_6.png",
+          "extractHash": "f26c98b6363b27745b649370a0258ae7",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/03-scatter/tier-6.png",
+          "bytes": 250091
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_3_6.png"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "h1",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_6.png",
+      "extractHash": "ec86ecaa614b01c4c915a328a6a3fdc9",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/04-h1.png",
+      "bytes": 256616,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_1.png",
+          "extractHash": "e3005aa2f1b68da45a2df359a3aeeedf",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-1.png",
+          "bytes": 64704
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_2.png",
+          "extractHash": "08cc7439b8a4b19409e8b3996f492aac",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-2.png",
+          "bytes": 74264
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_3.png",
+          "extractHash": "f0c9120f544be634f932edfd996bb0c2",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-3.png",
+          "bytes": 90435
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_4.png",
+          "extractHash": "b4cf3342d9ff6b54ab4fceaf45d4b99e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-4.png",
+          "bytes": 113736
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_5.png",
+          "extractHash": "7664792298735304bbf81fa296d49c0d",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-5.png",
+          "bytes": 166119
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_6.png",
+          "extractHash": "ec86ecaa614b01c4c915a328a6a3fdc9",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/04-h1/tier-6.png",
+          "bytes": 256616
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_4_6.png"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "h2",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_6.png",
+      "extractHash": "8bd0f11a4268a5740ae98200702904c0",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/05-h2.png",
+      "bytes": 223911,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_1.png",
+          "extractHash": "d29a4c6247bdad64ab69262f2a1a69f9",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-1.png",
+          "bytes": 69125
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_2.png",
+          "extractHash": "9e1f5d37989a5d84ba300c35b968c7d6",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-2.png",
+          "bytes": 79588
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_3.png",
+          "extractHash": "698571c71b5293244a4ecb7091a93bdf",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-3.png",
+          "bytes": 94976
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_4.png",
+          "extractHash": "8d33015a8db236a49babafaad0a0480c",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-4.png",
+          "bytes": 118987
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_5.png",
+          "extractHash": "0a366ff6b2802494abacef6c7c87b68e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-5.png",
+          "bytes": 156705
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_6.png",
+          "extractHash": "8bd0f11a4268a5740ae98200702904c0",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/05-h2/tier-6.png",
+          "bytes": 223911
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_5_6.png"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "h3",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_6.png",
+      "extractHash": "e54257a1d8d257b45b22d94a7d44c953",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/06-h3.png",
+      "bytes": 205184,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_1.png",
+          "extractHash": "42462dde5925f334c94a790e1f57a207",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-1.png",
+          "bytes": 55689
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_2.png",
+          "extractHash": "234f7187eebfe8b4babe797f6c544d8a",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-2.png",
+          "bytes": 65021
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_3.png",
+          "extractHash": "263ec1b5971c8a24b9a90633806fbb32",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-3.png",
+          "bytes": 80920
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_4.png",
+          "extractHash": "dd35bb5bde907964a870263a0ca21656",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-4.png",
+          "bytes": 99912
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_5.png",
+          "extractHash": "a8d12cf70aa480f4fa7ce3b0667eff69",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-5.png",
+          "bytes": 138201
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_6.png",
+          "extractHash": "e54257a1d8d257b45b22d94a7d44c953",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/06-h3/tier-6.png",
+          "bytes": 205184
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_6_6.png"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "h4",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_6.png",
+      "extractHash": "b5ecd1ef23412c941abdb9d93039e44e",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/07-h4.png",
+      "bytes": 206845,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_1.png",
+          "extractHash": "1e85b896b0eaa5e44840206d432e79ca",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-1.png",
+          "bytes": 58425
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_2.png",
+          "extractHash": "bf23078cac84bf64a80d93a2899ca990",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-2.png",
+          "bytes": 66824
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_3.png",
+          "extractHash": "d00be98e4ea59484f8ea2062326d4703",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-3.png",
+          "bytes": 79953
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_4.png",
+          "extractHash": "ee30039646ea03a4ea5aa3b811c59e33",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-4.png",
+          "bytes": 102068
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_5.png",
+          "extractHash": "619fd650347f38a489885d8b6b377c66",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-5.png",
+          "bytes": 137374
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_6.png",
+          "extractHash": "b5ecd1ef23412c941abdb9d93039e44e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/07-h4/tier-6.png",
+          "bytes": 206845
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_7_6.png"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "A",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_6.png",
+      "extractHash": "3548894df898c7349baa9d8335c434df",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/08-A.png",
+      "bytes": 190431,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_1.png",
+          "extractHash": "f908fba919f7aea4abf32c14951787d4",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-1.png",
+          "bytes": 57895
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_2.png",
+          "extractHash": "a7deb22a5af25744c97ce854ba5ac48c",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-2.png",
+          "bytes": 67245
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_3.png",
+          "extractHash": "cf7c0e47497cddb40b54381277133238",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-3.png",
+          "bytes": 80842
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_4.png",
+          "extractHash": "40548f8b4816b164b999b26242eacbff",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-4.png",
+          "bytes": 101228
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_5.png",
+          "extractHash": "0c02336b778a87e409e5c0bd3f7fd39f",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-5.png",
+          "bytes": 132909
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_6.png",
+          "extractHash": "3548894df898c7349baa9d8335c434df",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/08-A/tier-6.png",
+          "bytes": 190431
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_8_6.png"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "K",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_6.png",
+      "extractHash": "0fb54eec898b9a8409cf35d78d7d8ac7",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/09-K.png",
+      "bytes": 191500,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_1.png",
+          "extractHash": "cef2eaffb4947d445ae59b39a56ab4b4",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-1.png",
+          "bytes": 57639
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_2.png",
+          "extractHash": "31fbacf8a1033dc4aaa62b859e9952c4",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-2.png",
+          "bytes": 67190
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_3.png",
+          "extractHash": "044139dd790b3f942859c0a5f41f4bb9",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-3.png",
+          "bytes": 81294
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_4.png",
+          "extractHash": "dd797c6040445144a9c66aa9401189cf",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-4.png",
+          "bytes": 102055
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_5.png",
+          "extractHash": "ed0354c313fe78a45aa176fc2e7a072e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-5.png",
+          "bytes": 133790
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_6.png",
+          "extractHash": "0fb54eec898b9a8409cf35d78d7d8ac7",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/09-K/tier-6.png",
+          "bytes": 191500
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_9_6.png"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Q",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_6.png",
+      "extractHash": "da16dff547db72546a2c4dfc63ae8ded",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/10-Q.png",
+      "bytes": 187722,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_1.png",
+          "extractHash": "abc288e243aebcc4a95361f2444562b2",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-1.png",
+          "bytes": 55958
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_2.png",
+          "extractHash": "8a1f2acaf9193564eb97020f7754309c",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-2.png",
+          "bytes": 65395
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_3.png",
+          "extractHash": "1ed40b7b8aeea31478f3edf2d57d53ad",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-3.png",
+          "bytes": 78898
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_4.png",
+          "extractHash": "4c30a4a8d3e179a49ba1ea5d56f870bd",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-4.png",
+          "bytes": 99066
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_5.png",
+          "extractHash": "b0b92de442e736a478297e1f5f91e737",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-5.png",
+          "bytes": 130619
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_6.png",
+          "extractHash": "da16dff547db72546a2c4dfc63ae8ded",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/10-Q/tier-6.png",
+          "bytes": 187722
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_10_6.png"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "J",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_6.png",
+      "extractHash": "c8bd3aa256e61cb4a965771ebaafc414",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/11-J.png",
+      "bytes": 183985,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_1.png",
+          "extractHash": "46d600bcdbbd76847b41cb7ea4de5f48",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-1.png",
+          "bytes": 54394
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_2.png",
+          "extractHash": "27e4f58db93fef4458fb07f9dd7cdb9e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-2.png",
+          "bytes": 63530
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_3.png",
+          "extractHash": "5ecc0a69bfa6864439be1613982ea883",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-3.png",
+          "bytes": 76510
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_4.png",
+          "extractHash": "6bed182c4343e7345b530f75981dbe6f",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-4.png",
+          "bytes": 95893
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_5.png",
+          "extractHash": "935f3ecee88aad04d83d5b94463209c2",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-5.png",
+          "bytes": 126896
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_6.png",
+          "extractHash": "c8bd3aa256e61cb4a965771ebaafc414",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/11-J/tier-6.png",
+          "bytes": 183985
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_11_6.png"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "10",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_6.png",
+      "extractHash": "689cfa56fe222504eac3ee803bc0794f",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/12-10.png",
+      "bytes": 189288,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_1.png",
+          "extractHash": "1f7650d9b20007a40a39700e00e83a22",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-1.png",
+          "bytes": 58102
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_2.png",
+          "extractHash": "5876683151e0b2446800ed6f40525dbf",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-2.png",
+          "bytes": 67715
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_3.png",
+          "extractHash": "4a3466a15da4f504bab243774580ecb0",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-3.png",
+          "bytes": 81321
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_4.png",
+          "extractHash": "b3ac10409d5bd834990b3a67c48a2dd5",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-4.png",
+          "bytes": 101386
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_5.png",
+          "extractHash": "cf9c3ac6545d5cd429cf2a59d835c931",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-5.png",
+          "bytes": 132874
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_6.png",
+          "extractHash": "689cfa56fe222504eac3ee803bc0794f",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/12-10/tier-6.png",
+          "bytes": 189288
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_12_6.png"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "9",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_6.png",
+      "extractHash": "7d0e26b1935f4984baa70c947cfcbdc3",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/13-9.png",
+      "bytes": 185179,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_1.png",
+          "extractHash": "de84db72ded0a7d4e9ad46eb4215418d",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-1.png",
+          "bytes": 55170
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_2.png",
+          "extractHash": "8a195c487dfaf0345a9980fcb126e825",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-2.png",
+          "bytes": 64550
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_3.png",
+          "extractHash": "2c16eef7649e97a48b44902570e0293e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-3.png",
+          "bytes": 77656
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_4.png",
+          "extractHash": "ed2fe26a7d578ba4b930b919415fa82e",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-4.png",
+          "bytes": 97002
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_5.png",
+          "extractHash": "dd3dc00839bcf5b4a8f351d402c349b6",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-5.png",
+          "bytes": 128561
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_6.png",
+          "extractHash": "7d0e26b1935f4984baa70c947cfcbdc3",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/13-9/tier-6.png",
+          "bytes": 185179
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_13_6.png"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "scatter14",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_6.png",
+      "extractHash": "d05d82d885340b24c8f7d00067ae5781",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/14-scatter14.png",
+      "bytes": 254605,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_1.png",
+          "extractHash": "99fdc529d35b03b49bcfaf5baef79e95",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-1.png",
+          "bytes": 87218
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_2.png",
+          "extractHash": "eef772fedf314954eb6c2ce5dedf3fb2",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-2.png",
+          "bytes": 97759
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_3.png",
+          "extractHash": "4fc3ee8eaac416547ab8ae9266d613f3",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-3.png",
+          "bytes": 113592
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_4.png",
+          "extractHash": "b80a94359fc4ad34682a5b9d0d7269aa",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-4.png",
+          "bytes": 137233
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_5.png",
+          "extractHash": "dab76c17131853b40aa76388e37e0184",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-5.png",
+          "bytes": 176046
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_6.png",
+          "extractHash": "d05d82d885340b24c8f7d00067ae5781",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/14-scatter14/tier-6.png",
+          "bytes": 254605
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_14_6.png"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "scatter15",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_6.png",
+      "extractHash": "65c6052e379876f459da2a41684841b3",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/15-scatter15.png",
+      "bytes": 249254,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_1.png",
+          "extractHash": "1ed7b08735b4e6e49be3a99e8133efbe",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-1.png",
+          "bytes": 85376
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_2.png",
+          "extractHash": "498eee119d9f7be458bfeb98ea6dfba3",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-2.png",
+          "bytes": 93797
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_3.png",
+          "extractHash": "a896e308e508c464b9eee10383b6deef",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-3.png",
+          "bytes": 109899
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_4.png",
+          "extractHash": "5cc181c7132ecef4f9f91efd2a62b301",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-4.png",
+          "bytes": 133635
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_5.png",
+          "extractHash": "62794274c816fc44ea6cacfa8a49279f",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-5.png",
+          "bytes": 174106
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_6.png",
+          "extractHash": "65c6052e379876f459da2a41684841b3",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/15-scatter15/tier-6.png",
+          "bytes": 249254
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_15_6.png"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "scatter16",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_6.png",
+      "extractHash": "9cccc17f40fabde4e9878df935637974",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/16-scatter16.png",
+      "bytes": 249635,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_1.png",
+          "extractHash": "f39d67aa66bfc424481aed1df33678bf",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-1.png",
+          "bytes": 85156
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_2.png",
+          "extractHash": "e734a40a54b23d24cb021a9293447a7d",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-2.png",
+          "bytes": 94329
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_3.png",
+          "extractHash": "751e039b21a18594795169258096b444",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-3.png",
+          "bytes": 109559
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_4.png",
+          "extractHash": "aa873373c35e3fd4c85ae90caad502c4",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-4.png",
+          "bytes": 132947
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_5.png",
+          "extractHash": "8a9457b73dfe4d8489b31d4d18f709ed",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-5.png",
+          "bytes": 175995
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_6.png",
+          "extractHash": "9cccc17f40fabde4e9878df935637974",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/16-scatter16/tier-6.png",
+          "bytes": 249635
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_16_6.png"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "scatter17",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_6.png",
+      "extractHash": "b7695818edc001d4fbb088a064958b88",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/17-scatter17.png",
+      "bytes": 245792,
+      "tiers": [
+        {
+          "key": "tier-1",
+          "label": "7个/列 · 112px",
+          "columnCount": 7,
+          "designHeight": 112,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_1.png",
+          "extractHash": "aac9ad52fcc70084f88c77f9ebef15f3",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-1.png",
+          "bytes": 84503
+        },
+        {
+          "key": "tier-2",
+          "label": "6个/列 · 130px",
+          "columnCount": 6,
+          "designHeight": 130,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_2.png",
+          "extractHash": "bf0b6e4731cf81b4d999883d7eda4114",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-2.png",
+          "bytes": 92913
+        },
+        {
+          "key": "tier-3",
+          "label": "5个/列 · 156px",
+          "columnCount": 5,
+          "designHeight": 156,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_3.png",
+          "extractHash": "5ec9d7b73368363418586ef6c528c359",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-3.png",
+          "bytes": 107660
+        },
+        {
+          "key": "tier-4",
+          "label": "4个/列 · 196px",
+          "columnCount": 4,
+          "designHeight": 196,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_4.png",
+          "extractHash": "b092773ed2c962645b40f759c33b8f92",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-4.png",
+          "bytes": 130722
+        },
+        {
+          "key": "tier-5",
+          "label": "3个/列 · 262px",
+          "columnCount": 3,
+          "designHeight": 262,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_5.png",
+          "extractHash": "fe3b385ba725a2b4a8a2bab11ccef7da",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-5.png",
+          "bytes": 168886
+        },
+        {
+          "key": "tier-6",
+          "label": "2个/列 · 392px",
+          "columnCount": 2,
+          "designHeight": 392,
+          "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_6.png",
+          "extractHash": "b7695818edc001d4fbb088a064958b88",
+          "output": "assets/resources/spine-4.2/packs/lvbu/static/tiers/17-scatter17/tier-6.png",
+          "bytes": 245792
+        }
+      ],
+      "originalTierSources": [
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_1.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_2.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_3.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_4.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_5.png",
+        "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_17_6.png"
+      ]
+    }
+  ],
+  "shared": [
+    {
+      "kind": "frame",
+      "name": "symbol-frame-9slice.png",
+      "note": "280x392 tallest frame source; render with sliced mode instead of six frame assets",
+      "source": "Assets/Resources/lvbu/atlas/texture/eff_lvbu_kuang_xm_01_5.png",
+      "extractHash": "66658cc8345e6e14eb8581cdfeaa97bc",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/frame/symbol-frame-9slice.png",
+      "bytes": 27053
+    },
+    {
+      "kind": "background",
+      "name": "symbol-bg-9slice.png",
+      "note": "280x392 tallest empty panel frame",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_bg_1.png",
+      "extractHash": "c13ed6ac49fb3674f9f8afa2e7a11d14",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/background/symbol-bg-9slice.png",
+      "bytes": 170315
+    },
+    {
+      "kind": "letter",
+      "name": "letter-A.png",
+      "note": "borderless letter layer for dissolve/glow overlays",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/A_1.png",
+      "extractHash": "889de879b77e25d4ebdb3dcf49d60e79",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-A.png",
+      "bytes": 64117
+    },
+    {
+      "kind": "letter",
+      "name": "letter-K.png",
+      "note": "borderless letter layer",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/K_1.png",
+      "extractHash": "2b09d820f8046344e99a6f242027ae31",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-K.png",
+      "bytes": 69670
+    },
+    {
+      "kind": "letter",
+      "name": "letter-Q.png",
+      "note": "borderless letter layer",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/Q_1.png",
+      "extractHash": "d84f1cec5c4c17e4c9fcb7b592c49a62",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-Q.png",
+      "bytes": 72978
+    },
+    {
+      "kind": "letter",
+      "name": "letter-J.png",
+      "note": "borderless letter layer",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/J_1.png",
+      "extractHash": "af2879a3a71906e439eb55a8dfb8fc8a",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-J.png",
+      "bytes": 45247
+    },
+    {
+      "kind": "letter",
+      "name": "letter-10.png",
+      "note": "borderless letter layer",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/10_1.png",
+      "extractHash": "e1329ef058f820e4ea179d2524e4932a",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-10.png",
+      "bytes": 75547
+    },
+    {
+      "kind": "letter",
+      "name": "letter-9.png",
+      "note": "borderless letter layer",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/9_1.png",
+      "extractHash": "d3923294a1f7fa9489cbe6f1469a60a4",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/letter/letter-9.png",
+      "bytes": 46823
+    },
+    {
+      "kind": "dissolve",
+      "name": "dissolve-cloud.png",
+      "note": "primary grayscale dissolve mask",
+      "source": "Assets/Resources/lvbu/atlas/texture/eff_lvbu_noise_xm_01.png",
+      "extractHash": "ae3aa38227d8e754099adf08f72ca205",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/dissolve/dissolve-cloud.png",
+      "bytes": 226032
+    },
+    {
+      "kind": "dissolve",
+      "name": "dissolve-cells.png",
+      "note": "cellular edge texture used by the original materials",
+      "source": "Assets/Resources/lvbu/atlas/texture/eff_lvbu_noise_xm_02.png",
+      "extractHash": "5c4ad17ae0a05a8438cabcee3014d434",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/dissolve/dissolve-cells.png",
+      "bytes": 67911
+    },
+    {
+      "kind": "dissolve",
+      "name": "dissolve-turbulence.png",
+      "note": "turbulence texture used by the original break materials",
+      "source": "Assets/Resources/lvbu/atlas/texture/eff_lvbu_noise_xm_08.png",
+      "extractHash": "394812c265f90ac45ae7d34c9f38e190",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/dissolve/dissolve-turbulence.png",
+      "bytes": 47013
+    },
+    {
+      "kind": "dissolve",
+      "name": "dissolve-fire.png",
+      "note": "orange fire texture used by the original break materials",
+      "source": "Assets/Resources/lvbu/atlas/texture/eff_lvbu_noise_xm_10.png",
+      "extractHash": "a646d7ea69825d840a541f8eb4d01a89",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/dissolve/dissolve-fire.png",
+      "bytes": 319005
+    },
+    {
+      "kind": "audio",
+      "name": "lvbu-clear.mp3",
+      "note": "shared clear sound",
+      "source": "Assets/Resources/lvbu/sounds/sounds@lvbu_clear.mp3",
+      "extractHash": "4e1573ba03cc2ee4da35c567e329b654",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/audio/lvbu-clear.mp3",
+      "bytes": 48828
+    },
+    {
+      "kind": "bonus-orientation",
+      "name": "01-bonus-horizontal.png",
+      "note": "590x206 horizontal Fangtian Ji",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1.png",
+      "extractHash": "97362158aac42ac4aa09a160896a901d",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/01-bonus-horizontal.png",
+      "bytes": 260660
+    },
+    {
+      "kind": "bonus-orientation",
+      "name": "01-bonus-horizontal-wide.png",
+      "note": "615x206 wider horizontal Fangtian Ji",
+      "source": "Assets/Game_Resource/lvbu/lvbu_sprite/lvbu_sprite_ui/icon_1_2.png",
+      "extractHash": "f9c54464e0c965344a9678e07aaf5387",
+      "output": "assets/resources/spine-4.2/packs/lvbu/static/symbols/01-bonus-horizontal-wide.png",
+      "bytes": 235865
+    }
+  ]
+}

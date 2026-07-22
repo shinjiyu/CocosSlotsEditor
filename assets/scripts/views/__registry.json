@@ -1,0 +1,17 @@
+{
+  "$schema": 1,
+  "tool": "viewweaver",
+  "version": "0.2.0",
+  "entries": {
+    "lvbu-low-symbol": {
+      "prefabName": "lvbu-low-symbol",
+      "prefabPath": "assets/resources/spine-4.2/packs/lvbu/prefabs/lvbu-low-symbol.prefab",
+      "genTsPath": "assets/scripts/views/lvbu-low-symbol/lvbu-low-symbol.gen.ts",
+      "bindJsonPath": "assets/scripts/views/lvbu-low-symbol/lvbu-low-symbol.bind.json",
+      "viewTsPath": "assets/scripts/views/lvbu-low-symbol/lvbu-low-symbol.view.ts",
+      "viewClassName": "Lvbu_low_symbolView",
+      "lastGenAt": "2026-07-21T07:58:27.169Z",
+      "lastGenBy": "ai"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "zone": "spine-4.2",
+  "engineOption": "spine-4.2",
+  "updatedAt": "2026-07-17",
+  "note": "由 tools/switch-spine-zone.cjs 写入；须与 engine.json 一致。改完后请重启 Creator / 预览。"
+}

@@ -10,7 +10,7 @@ import { par } from '../common/anim/compose';
 import type { EditorDoc } from '../editor-core/index';
 import { readFrameExt } from '../editor-core/index';
 import type { BoardView } from './BoardView';
-import { resolveTemplateForState } from './animTemplates';
+import { resolveTemplateForState, animStyleFromBoardView } from './animTemplates';
 import { BoardEvents } from './boardEvents';
 
 export class BoardDirector {
@@ -68,7 +68,10 @@ export class BoardDirector {
                 const anims: IAnim[] = [];
                 for (let k = i; k <= batchEnd; k++) {
                     await this.emit('transition-start', k);
-                    const { template, params } = resolveTemplateForState(doc.states[k]);
+                    const { template, params } = resolveTemplateForState(
+                        doc.states[k],
+                        animStyleFromBoardView(this.boardView),
+                    );
                     anims.push(
                         template.build({
                             boardView: this.boardView,
@@ -84,8 +87,22 @@ export class BoardDirector {
                 const anim = anims.length === 1 ? anims[0] : par(...anims);
                 this.current = anim;
                 await anim.play();
-                // 动画只演过程；结束后以批末帧的 resolved 为准全量落帧
-                this.boardView.render(doc.states[batchEnd]);
+                // 动画只演过程；结束后以批末帧的 resolved 为准全量落帧。
+                // multiCollect：数字收集语义 — 落帧后强制不显示倍率（避免 curr 仍留 multiplier 时「演完又露出来」）
+                // reelSpin 等已在停轮时落好盘面：同拓扑则只拆残留 Mask，避免 setSymbol 闪一下
+                const landedState = doc.states[batchEnd];
+                const suppressDigits = readFrameExt(landedState)?.frameKind === 'multiCollect';
+                if (this.boardView.consumeVisualSettled(landedState)) {
+                    console.log('[reelFlash] director:skipRender(settled)');
+                    // 假轮带已同帧落盘+拆 Mask
+                } else if (this.boardView.hasReelMasks()) {
+                    console.log('[reelFlash] director:clearMasks+render');
+                    this.boardView.clearReelMasks();
+                    this.boardView.render(landedState, { suppressMultiDigits: suppressDigits });
+                } else {
+                    console.log('[reelFlash] director:render');
+                    this.boardView.render(landedState, { suppressMultiDigits: suppressDigits });
+                }
                 landed = batchEnd;
                 for (let k = i; k <= batchEnd; k++) {
                     await this.emit('transition-end', k);

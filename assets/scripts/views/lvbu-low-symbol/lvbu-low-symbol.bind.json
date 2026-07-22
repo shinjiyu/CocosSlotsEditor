@@ -1,0 +1,31 @@
+{
+  "$schema": 1,
+  "prefab": "../symbolEditor/assets/resources/spine-4.2/packs/lvbu/prefabs/lvbu-low-symbol.prefab",
+  "prefabName": "lvbu-low-symbol",
+  "viewClassName": "Lvbu_low_symbolView",
+  "outputPath": "../symbolEditor/assets/scripts/views/lvbu-low-symbol/lvbu-low-symbol.gen.ts",
+  "nodes": [
+    {
+      "path": "bg",
+      "field": "bg",
+      "exposeNode": true,
+      "components": [
+        { "rawType": "cc.Sprite", "field": "bgSprite" },
+        { "rawType": "cc.UITransform", "field": "bgTransform" }
+      ],
+      "comment": "低符号底板（280x392，可 9 宫格拉伸）"
+    },
+    {
+      "path": "letter",
+      "field": "letter",
+      "exposeNode": true,
+      "components": [
+        { "rawType": "cc.Sprite", "field": "letterSprite" },
+        { "rawType": "cc.UITransform", "field": "letterTransform" }
+      ],
+      "comment": "字母层（等比缩放，不裁切）"
+    }
+  ],
+  "generatedAt": "2026-07-21T07:57:25.299Z",
+  "toolVersion": "0.1.0"
+}

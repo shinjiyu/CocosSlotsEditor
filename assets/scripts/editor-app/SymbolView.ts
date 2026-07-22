@@ -11,18 +11,23 @@
  * 尺寸契约：符号资源统一按全局设计尺寸（provider.designW×designH，缺省 152×128）制作；
  * 纹理走 Sprite RAW 模式原样显示，本组件把设计盒等比缩到实际格子（cellW×cellH×cellFill）。
  *
- * 动画钩子（enter/win/vanish）：prefab 的 SymbolTemplate > spine 动画名 > 内置 enterFx；
- * win/vanish 还会并行叠加 provider 解析出的格子特效（CellFxDef）。
+ * prefab 符号不挂脚本：实例化后按 prefabAssetId 查 SymbolRendererRegistry，
+ * 运行时 addComponent(view 类) + bind + applyLayout（ViewWeaver 双类模型）。
+ * 动画钩子（enter/win/vanish）：ISymbolRenderer > SymbolTemplate（旧包兼容）
+ * > spine 动画名 > 内置 enterFx；win/vanish 还会并行叠加格子特效（CellFxDef）。
  */
 
 import { _decorator, Color, Component, instantiate, Label, Node, Sprite, UIOpacity, UITransform, Vec3, sp, tween } from 'cc';
 import type { IAnim } from '../common/anim/IAnim';
 import { par, playSpine, starterAnim } from '../common/anim/compose';
 import { DESIGN_CELL_H, DESIGN_CELL_W, isMultiEntry, spawnCellFx } from './SymbolDefs';
-import type { CellFxDef, SymbolEntry, SymbolProvider } from './SymbolDefs';
+import type { CellFxDef, DissolveFxConfig, SymbolEntry, SymbolProvider } from './SymbolDefs';
 import { buildSymbolFx, enterFxName } from './symbolFx';
 import { playSfx, sfxStep } from './sfx';
 import { SymbolTemplate } from './SymbolTemplate';
+import type { ISymbolRenderer, SymbolRenderContext } from '../views/ISymbolRenderer';
+import { symbolRendererFor } from '../views/SymbolRendererRegistry';
+import { columnCountToTier, pickVisualVariant, tierKey } from './board-layout';
 
 const { ccclass } = _decorator;
 
@@ -35,13 +40,21 @@ export class SymbolView extends Component {
     private cellW = 100;
     private cellH = 84;
     private cellFill = 0.9;
+    private columnCount: number | null = null;
+    private tier: number | null = null;
+    /** 显式 visualVariant.key（优先于 columnCount/tier）；空=自动选档 */
+    private variantKey: string | null = null;
+    /** 盘面模式：符号按纹理 1:1，格子跟纹理走（不 letterbox / 不压扁） */
+    private pixelPerfect = false;
     private content: Node | null = null;
     private prefabInstance: Node | null = null;
+    private renderer: (Component & ISymbolRenderer) | null = null;
     private spineNode: Node | null = null;
     private spineSkeleton: sp.Skeleton | null = null;
     private currentId: number | null = null;
     private multiLabel: Label | null = null;
     private multiValue: number | null = null;
+    private dissolveMaterialActive = false;
 
     setup(provider: SymbolProvider, cellW: number, cellH: number, cellFill: number): void {
         this.provider = provider;
@@ -55,6 +68,55 @@ export class SymbolView extends Component {
             this.node.addChild(n);
             this.content = n;
         }
+    }
+
+    /** 盘面列占位上下文；预览墙等无列语义时传 null */
+    setColumnContext(columnCount: number | null, tier: number | null = null): void {
+        const nextCount =
+            columnCount == null || Number.isNaN(Number(columnCount))
+                ? null
+                : Math.trunc(Number(columnCount));
+        const nextTier =
+            tier ?? (nextCount != null ? columnCountToTier(nextCount) : null);
+        const changed = nextCount !== this.columnCount || nextTier !== this.tier;
+        this.columnCount = nextCount;
+        this.tier = nextTier;
+        // 列符号数变化时必须重选档位纹理；否则同 symbolId 会沿用旧图。
+        if (changed && this.currentId != null && this.content && this.provider) {
+            const id = this.currentId;
+            this.currentId = null;
+            this.setSymbol(id);
+        }
+    }
+
+    /**
+     * 强制使用指定 visualVariant.key（如顶条横版）；传 null/'' 恢复自动选档。
+     * 优先于 columnCount / tier。
+     */
+    setVariantKey(key: string | null | undefined): void {
+        const next = key && key.trim() ? key.trim() : null;
+        if (next === this.variantKey) return;
+        this.variantKey = next;
+        if (this.currentId != null && this.content && this.provider) {
+            const id = this.currentId;
+            this.currentId = null;
+            this.setSymbol(id);
+        }
+    }
+
+    /** 盘面编辑：纹理 1:1 画在设计格心，允许超框（不缩放进包围盒） */
+    setPixelPerfect(on: boolean): void {
+        this.pixelPerfect = on;
+    }
+
+    /** 当前显示纹理固有尺寸（含档位）；供顶条等参考，不用于撑格子 */
+    getDisplaySize(): { w: number; h: number } {
+        if (this.currentId == null || !this.provider) return { w: 0, h: 0 };
+        const base = this.provider.getEntry(this.currentId);
+        if (!base) return { w: 0, h: 0 };
+        const { w, h } = this.contentIntrinsicSize(this.resolveDisplayEntry(base));
+        const mul = Math.max(0.01, base.scaleMul || 1);
+        return { w: w * mul, h: h * mul };
     }
 
     get symbolId(): number | null {
@@ -71,9 +133,10 @@ export class SymbolView extends Component {
         return this.spineSkeleton;
     }
 
-    /** 内容固有尺寸：优先纹理 originalSize（保比例），否则用全局设计盒 */
+    /** 内容固有尺寸：优先当前显示纹理（含档位变体）originalSize，否则用全局设计盒 */
     private contentIntrinsicSize(entry: SymbolEntry): { w: number; h: number } {
-        const tex = entry.texture;
+        const display = this.resolveDisplayEntry(entry);
+        const tex = display.texture;
         const ow = tex?.originalSize?.width ?? 0;
         const oh = tex?.originalSize?.height ?? 0;
         if (ow > 0 && oh > 0) return { w: ow, h: oh };
@@ -83,10 +146,48 @@ export class SymbolView extends Component {
         };
     }
 
-    /** 符号固有尺寸 → 实际格子的等比缩放（含 scaleMul；不拉伸变形） */
+    /**
+     * 按列占位 / 显式 key 叠加 visualVariants 的显示副本（不改库内 SymbolEntry）。
+     * 无匹配变体时返回原 entry。
+     */
+    private resolveDisplayEntry(entry: SymbolEntry): SymbolEntry {
+        let variant =
+            this.variantKey != null
+                ? (entry.visualVariants ?? []).find((v) => v.key === this.variantKey) ?? null
+                : null;
+        if (!variant) variant = pickVisualVariant(entry, this.columnCount);
+        if (!variant && this.tier != null) {
+            const key = tierKey(this.tier);
+            variant = (entry.visualVariants ?? []).find((v) => v.key === key) ?? null;
+        }
+        if (!variant) return entry;
+        const copy = Object.create(entry) as SymbolEntry;
+        if (variant.texture) copy.texture = variant.texture;
+        if (variant.spine) copy.spine = variant.spine;
+        if (variant.prefab) {
+            copy.prefab = variant.prefab;
+            if (variant.prefabAssetId) copy.prefabAssetId = variant.prefabAssetId;
+        }
+        // 有档位静帧时优先走 sprite，避免 spine+空纹理分支挡住换档。
+        if (variant.texture) {
+            Object.defineProperty(copy, 'contentKind', {
+                configurable: true,
+                get: () => 'sprite' as const,
+            });
+        }
+        return copy;
+    }
+
+    /** 符号固有尺寸 → 缩放。
+     * pixelPerfect：纹理 1:1（可超设计格）；否则等比缩进格子。
+     */
     private fitScale(entry: SymbolEntry): number {
+        if (this.pixelPerfect) return entry.scaleMul;
         const { w, h } = this.contentIntrinsicSize(entry);
-        return Math.min((this.cellW * this.cellFill) / w, (this.cellH * this.cellFill) / h) * entry.scaleMul;
+        if (w <= 0 || h <= 0) return entry.scaleMul;
+        const boxW = this.cellW * this.cellFill;
+        const boxH = this.cellH * this.cellFill;
+        return Math.min(boxW / w, boxH / h) * entry.scaleMul;
     }
 
     /** 设计格 → 实际格子的换算比（格子特效用） */
@@ -98,15 +199,28 @@ export class SymbolView extends Component {
 
     setSymbol(symbolId: number | null): void {
         if (!this.content || !this.provider) return;
+        // 同 id 不重刷纹理/prefab，避免假轮带停轮后闪一下
+        if (symbolId === this.currentId) {
+            const sprite = this.content.getComponent(Sprite);
+            if (sprite) sprite.enabled = true;
+            const contentOp = this.content.getComponent(UIOpacity);
+            if (contentOp) contentOp.opacity = 255;
+            this.content.active = true;
+            return;
+        }
+        if ((globalThis as { __reelFlashLog?: boolean }).__reelFlashLog) {
+            console.log('[reelFlash] setSymbol', { from: this.currentId, to: symbolId });
+        }
         const sprite = this.content.getComponent(Sprite)!;
+        this.resetDissolveSprite();
         // 归位 content 变换（fx / 消除演出中断可能留下残余缩放/旋转/透明度/隐藏的 sprite）
         this.content.setRotationFromEuler(0, 0, 0);
         const contentOp = this.content.getComponent(UIOpacity);
         if (contentOp) contentOp.opacity = 255;
         sprite.enabled = true;
 
-        const entry = symbolId !== null ? this.provider.getEntry(symbolId) : null;
-        if (!entry) {
+        const baseEntry = symbolId !== null ? this.provider.getEntry(symbolId) : null;
+        if (!baseEntry) {
             this.clearRichContent();
             sprite.spriteFrame = null;
             this.content.setScale(1, 1, 1);
@@ -114,6 +228,7 @@ export class SymbolView extends Component {
             this.setMultiplier(null);
             return;
         }
+        const entry = this.resolveDisplayEntry(baseEntry);
 
         const s = this.fitScale(entry);
         const kind = entry.contentKind;
@@ -124,6 +239,10 @@ export class SymbolView extends Component {
                 this.clearPrefabInstance();
                 this.prefabInstance = instantiate(entry.prefab!);
                 this.content.addChild(this.prefabInstance);
+                this.mountRenderer(entry, symbolId);
+            } else {
+                // 同符号复用实例：格子尺寸可能变了，重新排版
+                this.renderer?.applyLayout(this.renderContext(symbolId));
             }
         } else if (kind === 'spine' && !entry.texture) {
             // 常驻 spine：没有静态纹理可回退，只能骨骼常显（idle 循环或 setup pose）
@@ -255,6 +374,35 @@ export class SymbolView extends Component {
         if (sprite && restoreSprite) sprite.enabled = true;
     }
 
+    /** 当前排版上下文（列数/档位由盘面侧 setColumnContext 注入） */
+    private renderContext(symbolId: number | null = this.currentId): SymbolRenderContext {
+        return {
+            symbolId,
+            cellW: this.cellW,
+            cellH: this.cellH,
+            cellFill: this.cellFill,
+            designW: this.provider?.designW ?? DESIGN_CELL_W,
+            designH: this.provider?.designH ?? DESIGN_CELL_H,
+            columnCount: this.columnCount,
+            tier: this.tier,
+        };
+    }
+
+    /**
+     * prefab 实例化后运行时注入渲染器（ViewWeaver 模型：prefab 零脚本）。
+     * 注册表查不到 view 类 = 纯静态 prefab，或走 SymbolTemplate 旧路径。
+     */
+    private mountRenderer(entry: SymbolEntry, symbolId: number | null): void {
+        this.renderer = null;
+        if (!this.prefabInstance) return;
+        const ctor = entry.prefabAssetId ? symbolRendererFor(entry.prefabAssetId) : null;
+        if (!ctor) return;
+        const r = this.prefabInstance.addComponent(ctor) as Component & ISymbolRenderer;
+        r.bind(this.prefabInstance);
+        r.applyLayout(this.renderContext(symbolId));
+        this.renderer = r;
+    }
+
     private setupSpine(entry: SymbolEntry): void {
         this.clearSpine();
         if (!entry.spine || !this.content) return;
@@ -269,13 +417,15 @@ export class SymbolView extends Component {
         this.spineSkeleton = sk;
     }
 
-    /** 入场动效优先级：prefab SymbolTemplate > spine enterAnim > 内置 enterFx；入场音效并行 */
+    /** 入场动效优先级：ISymbolRenderer > SymbolTemplate > spine enterAnim > 内置 enterFx；入场音效并行 */
     buildEnterAnim(): IAnim | null {
         if (this.currentId === null || !this.content) return null;
         const entry = this.provider?.getEntry(this.currentId);
-        let visual: IAnim | null = null;
-        const tpl = this.prefabInstance?.getComponent(SymbolTemplate);
-        if (tpl) visual = tpl.buildEnterAnim();
+        let visual: IAnim | null = this.renderer?.buildEnterAnim?.() ?? null;
+        if (!visual) {
+            const tpl = this.prefabInstance?.getComponent(SymbolTemplate);
+            if (tpl) visual = tpl.buildEnterAnim();
+        }
         if (!visual && entry) {
             visual = this.buildSpineHook(entry.enterAnim);
             if (!visual) {
@@ -347,8 +497,11 @@ export class SymbolView extends Component {
         // 倍率球不走中奖高亮（扩散 / 倍率飞出是独立帧模板）
         if (isMultiEntry(entry)) return null;
         const parts: IAnim[] = [];
-        const tpl = this.prefabInstance?.getComponent(SymbolTemplate)?.buildWinAnim();
-        if (tpl) parts.push(tpl);
+        const own =
+            this.renderer?.buildWinAnim?.() ??
+            this.prefabInstance?.getComponent(SymbolTemplate)?.buildWinAnim() ??
+            null;
+        if (own) parts.push(own);
         else {
             const spine = this.buildSpineHook(entry?.winAnim);
             if (spine) parts.push(spine);
@@ -369,13 +522,19 @@ export class SymbolView extends Component {
         if (this.currentId === null) return null;
         const entry = this.provider?.getEntry(this.currentId);
         const parts: IAnim[] = [];
-        const tpl = this.prefabInstance?.getComponent(SymbolTemplate)?.buildVanishAnim();
-        if (tpl) parts.push(tpl);
+        const own =
+            this.renderer?.buildVanishAnim?.() ??
+            this.prefabInstance?.getComponent(SymbolTemplate)?.buildVanishAnim() ??
+            null;
+        if (own) parts.push(own);
         else {
             // 消除后格子即将清空：不回 idle、临时骨骼拆除后也不闪回静态图
             const spine = this.buildSpineHook(entry?.vanishAnim, false);
             if (spine) parts.push(spine);
-            else parts.push(this.buildDefaultVanish(defaultDur));
+            else {
+                const dissolve = this.buildDissolveVanish(this.provider?.vanishDissolveFor?.(this.currentId) ?? null);
+                parts.push(dissolve ?? this.buildDefaultVanish(defaultDur));
+            }
         }
         if (entry?.vanishSound) parts.push(sfxStep(entry.vanishSound));
         const fx = this.buildCellFxAnim(this.provider?.vanishCellFxFor(this.currentId) ?? null);
@@ -402,6 +561,64 @@ export class SymbolView extends Component {
                 t2.stop();
             };
         });
+    }
+
+    /** Shared Sprite dissolve: one symbol texture, one mask, no size-tier symbol duplication. */
+    private buildDissolveVanish(def: DissolveFxConfig | null): IAnim | null {
+        const sprite = this.content?.getComponent(Sprite);
+        if (!def || !sprite?.spriteFrame) return null;
+        return starterAnim((finish) => {
+            if (!sprite.isValid) {
+                finish();
+                return;
+            }
+            sprite.customMaterial = def.material;
+            this.dissolveMaterialActive = true;
+            const inst = sprite.getMaterialInstance(0);
+            if (!inst) {
+                this.resetDissolveSprite();
+                finish();
+                return;
+            }
+            inst.setProperty('maskTexture', def.maskTexture);
+            inst.setProperty('softness', def.softness);
+            inst.setProperty('edgeWidth', def.edgeWidth);
+            inst.setProperty('edgeGlow', def.edgeGlow);
+            inst.setProperty('edgeColor', def.edgeColor);
+            inst.setProperty('dissolve', 0);
+
+            const progress = { value: 0 };
+            const tw = tween(progress)
+                .to(
+                    Math.max(0.05, def.duration),
+                    { value: 1 },
+                    {
+                        easing: 'quadIn',
+                        onUpdate: (target) => {
+                            if (sprite.isValid) inst.setProperty('dissolve', target?.value ?? progress.value);
+                        },
+                    },
+                )
+                .call(() => {
+                    if (sprite.isValid) sprite.enabled = false;
+                    finish();
+                })
+                .start();
+            return () => {
+                tw.stop();
+                this.resetDissolveSprite();
+            };
+        });
+    }
+
+    private resetDissolveSprite(): void {
+        if (!this.dissolveMaterialActive || !this.content?.isValid) return;
+        const sprite = this.content.getComponent(Sprite);
+        if (sprite?.isValid) {
+            sprite.customMaterial = null;
+            sprite.enabled = true;
+        }
+        this.dissolveMaterialActive = false;
     }
 
     /**
@@ -482,6 +699,7 @@ export class SymbolView extends Component {
     }
 
     private clearPrefabInstance(): void {
+        this.renderer = null;
         if (this.prefabInstance) {
             this.prefabInstance.destroy();
             this.prefabInstance = null;

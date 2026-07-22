@@ -97,7 +97,16 @@ export type Phase = 'idle' | 'anticipation' | 'consequence';
 // ============================================================================
 
 export interface BoardState {
-  /** 盘面拓扑：列数、每列高度（支持非等高 reel） */
+  /**
+   * 当前帧的盘面拓扑：列数、每列高度（支持非等高 reel）。
+   *
+   * topology 属于 PresentationState，而不是 session 级静态配置，因此相邻帧
+   * 可以拥有不同的 visibleRows。例如某帧为 [7,5,3,6,2,4]，下一帧可变为
+   * [4,7,6,2,5,3]。display / resolved 必须随各自帧的 topology 改变长度。
+   *
+   * 这里描述的是逻辑位置数量，不描述像素高度、资源 tier 或布局算法；
+   * 后三者由 presentation profile / symbol pack 根据本字段推导。
+   */
   topology: ReelTopology;
 
   /** 滚动期显示层（含模糊带、占位符） */
@@ -130,7 +139,10 @@ export interface BoardState {
 
 export interface ReelTopology {
   cols: number;
-  /** 每列可见行数；可不等高 */
+  /**
+   * 当前帧每列的可见逻辑位置数；数组长度必须等于 cols，可不等高。
+   * 该值可逐帧变化，不要求整个 session 固定。
+   */
   visibleRows: number[];
   /** 每列额外行（上） */
   extraTop: number[];

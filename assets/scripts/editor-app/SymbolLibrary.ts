@@ -1,12 +1,16 @@
 /**
- * SymbolLibrary — 符号库组件（配置全在 Creator 原生 Inspector 完成）。
+ * SymbolLibrary — 符号表（第二层：用素材库条目组装符号）。
  *
- * 用法：双击 assets/resources/games/<gameId>/symbol-library.prefab 进入编辑，
- * 在 Inspector 的 symbols 数组上 +/− 条目、拖入纹理/spine/prefab、填动画名。
- * 编辑时场景视图会自动铺出「预览墙」：每个符号一格，spine 循环播 idle，
- * 改字段立即重建（所见即所得）。previewEnter/Win/Vanish 勾一下播对应动画。
+ * 分层：
+ *   1) asset-library.prefab  — 素材库（纹理 / spine / 音频 / 特效）
+ *   2) symbol-library.prefab — 本组件：符号 id + 引用素材 id + 动画名
+ *   3) BoardEditor           — 只用符号刷盘面
  *
- * 运行时由 SymbolCatalog.load(libraryPath) 加载本 prefab 读取数据，本组件不进场景。
+ * 用法：双击 packs/<packId>/symbol-library.prefab → Inspector 配符号；
+ * 条目上填 *AssetId（推荐）或继续直接拖资源（兼容旧包）。
+ * 编辑时场景视图铺「预览墙」；previewEnter/Win/Vanish 试播动画。
+ *
+ * 运行时由 SymbolCatalog 先载素材库再解析本表，本组件不进盘面场景。
  */
 
 import { _decorator, BitmapFont, CCObject, Color, Component, Graphics, Label, Node, RenderRoot2D, SpriteFrame, UITransform, sp } from 'cc';

@@ -27,7 +27,7 @@ AI / Cursor / AIWS
 
 ```js
 {
-  gameId: "golden-seth",          // 可选；默认扫 games/*/ 或旧根库
+  gameId: "golden-seth",          // 可选；packId，默认扫 spine-*/packs/*/
   docRel: "assets/resources/configs/presentation/doc_example.json",
   usedSymbolIds: [1, 2, 3],       // 可选；有则优先于 docRel
   usedOnly: true,                 // export-pack-for-ai 默认 true
@@ -42,7 +42,7 @@ AI / Cursor / AIWS
 {
   "ok": true,
   "outRel": "temp/symbol-pack",
-  "libraryRel": "assets/resources/games/golden-seth/symbol-library.prefab",
+  "libraryRel": "assets/resources/spine-3.8/packs/golden-seth/symbol-library.prefab",
   "usedSymbolIds": [1, 2, 3],
   "droppedSymbolIds": [10, 11],
   "assetRels": ["assets/resources/..."],
@@ -79,6 +79,10 @@ return await Editor.Message.request("symbol-tools", "export-pack-for-ai", {
 });
 ```
 
+## 已知坑：BitmapFont 贴图
+
+`multiDigitFont`（如 `countup_02.fnt`）与 atlas **不同 uuid**。闭包必须跟 `.fnt.meta` 的 `textureUuid` / `atlasName`，否则 PA 只有 `.fnt`、**倍率数字整页不显示**。`export-pack.js` 已对 `cc.BitmapFont` 单独补拷 atlas。
+
 ## 合并进 PA
 
 ```bash
@@ -87,7 +91,7 @@ node ai-game-workspace/scripts/merge-symbol-pack.mjs \
   --pa <paRoot>
 ```
 
-若 profile `symbolLibraryRel` 为扁平 `assets/resources/symbol-library.prefab`，而包内库在 `games/<id>/`，合并脚本会再镜像一份到 profile 路径（uuid 美术仍落在 `games/<id>/` 下）。
+若 profile `symbolLibraryRel` 为扁平 `assets/resources/symbol-library.prefab`，而包内库在 `spine-*/packs/<id>/`，合并脚本会再镜像一份到 profile 路径（uuid 美术仍落在 packs 目录下）。
 
 AIWS WebSocket：`symbol_pack_merge`（pack 默认 `<boardEditorRoot>/temp/symbol-pack`）。
 

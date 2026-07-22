@@ -1,42 +1,155 @@
 /**
  * BoardView — 渲染一个 PresentationState 的 resolved 盘面。
- * 节点两层：cell 节点（位移动画载体，scale 恒 1）→ SymbolView content（符号内容+适配缩放）。
- * 动画模板通过 getCellNode 做位移 tween，通过 getSymbolView 拿 enter/win/vanish 钩子。
+ * 节点两层：cell 节点（位移动画载体，scale 恒 1）→ SymbolView content（符号内容）。
+ *
+ * 吕布类：格子 = 设计框（280 × 档高），用于命中/选中/列堆叠。
+ * 符号 pixelPerfect 按纹理 1:1 画在格心，允许超框（不把格子撑成包围盒）。
  */
 
 import { _decorator, Component, Node, UITransform, Vec3, Color, Graphics, EventTouch } from 'cc';
 import type { PresentationState } from '../vendor/slot-presentation-ir/index';
 import type { SymbolProvider } from './SymbolDefs';
 import { SymbolView } from './SymbolView';
+import { cellDesignHeightForColumn, columnCountToTier, type CellRef, type BoardLayoutProfile } from './board-layout';
+import { findColumnSpanRow } from './board-layout';
+import { isColumnFillEntry } from './placement';
 
 const { ccclass, property } = _decorator;
+
+/** 顶条假轮带宿主（由 BoardEditor 注入；与 pack 无关） */
+export interface TopStripReelHost {
+    root: Node;
+    count: number;
+    cellW: number;
+    cellH: number;
+    /** 顶条第 i 格中心 X（相对 root） */
+    slotCenterX(index: number): number;
+    hideCells(): Node[];
+    /** 停轮落帧（含 span 布局） */
+    landState(state: PresentationState): void;
+    getCellNode(index: number): Node | null;
+    getSymbolView(index: number): import('./SymbolView').SymbolView | null;
+}
 
 @ccclass('BoardView')
 export class BoardView extends Component {
     @property cellW = 100;
     @property cellH = 84;
-    @property colGap = 2;
-    @property rowGap = 2;
-    /** 格内符号相对格子的填充比例 */
+    @property colGap = 0;
+    @property rowGap = 0;
     @property cellFill = 0.9;
-    /** 是否绘制网格调试背景（编辑器用；业务盘面一般关闭） */
     @property showGridBg = true;
 
-    /** 按下/拖入新格回调（刷子绘制）；由 BoardEditorMain 注入 */
     onCellPress: ((col: number, row: number) => void) | null = null;
-    /** 一笔结束（touch end/cancel） */
     onStrokeEnd: (() => void) | null = null;
 
     private catalog: SymbolProvider | null = null;
     private cellNodes: Node[][] = [];
     private symbolViews: SymbolView[][] = [];
     private gridBg: Node | null = null;
+    /** 每格设计高（选中框 / 堆叠用；不等于纹理包围盒） */
+    private cellHeights: number[][] = [];
+    private topMappedKeys = new Set<string>();
+    private layoutProfile: BoardLayoutProfile | null = null;
+    /** 当前帧存在列占满符号的列 */
+    private columnSpanCols = new Set<number>();
+    private topStripReel: TopStripReelHost | null = null;
 
     setCatalog(catalog: SymbolProvider): void {
         this.catalog = catalog;
     }
 
-    /** 符号库（模板读扩散 spine 等） */
+    setTopStripReelHost(host: TopStripReelHost | null | undefined): void {
+        this.topStripReel = host ?? null;
+    }
+
+    getTopStripReelHost(): TopStripReelHost | null {
+        return this.topStripReel;
+    }
+
+    /** 当前网格拓扑是否与 state 一致（假轮带停轮后可免整盘重刷） */
+    topologyMatches(state: PresentationState): boolean {
+        const { cols, visibleRows } = state.board.topology;
+        return (
+            this.currentCols === cols &&
+            this.currentVisibleRows.length === visibleRows.length &&
+            this.currentVisibleRows.every((v, i) => v === visibleRows[i])
+        );
+    }
+
+    hasReelMasks(): boolean {
+        if (this.node.children.some((c) => c.name.startsWith('reelMask_'))) return true;
+        const root = this.topStripReel?.root;
+        return !!root?.isValid && root.children.some((c) => c.name.startsWith('reelMask_'));
+    }
+
+    /** 拆掉假轮带 Mask（停轮真格已落好时用，避免再 setSymbol） */
+    clearReelMasks(): void {
+        const doomed = this.node.children.filter((c) => c.name.startsWith('reelMask_'));
+        for (const n of doomed) n.destroy();
+        const root = this.topStripReel?.root;
+        if (root?.isValid) {
+            const topDoomed = root.children.filter((c) => c.name.startsWith('reelMask_'));
+            for (const n of topDoomed) n.destroy();
+        }
+    }
+
+    private settledFingerprint: string | null = null;
+
+    /** 假轮带同帧落盘后标记，Director 跳过二次 render */
+    markVisualSettled(state: PresentationState): void {
+        this.settledFingerprint = this.fingerprintState(state);
+    }
+
+    consumeVisualSettled(state: PresentationState): boolean {
+        const fp = this.fingerprintState(state);
+        if (this.settledFingerprint && this.settledFingerprint === fp) {
+            this.settledFingerprint = null;
+            return true;
+        }
+        this.settledFingerprint = null;
+        return false;
+    }
+
+    private fingerprintState(state: PresentationState): string {
+        const { cols, visibleRows } = state.board.topology;
+        const parts: string[] = [`${cols}:${visibleRows.join(',')}`];
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < visibleRows[c]!; r++) {
+                parts.push(String(state.board.resolved[c]?.[r]?.symbolId ?? 'n'));
+            }
+        }
+        const top = (state.extensions?.['frame'] as { topStrip?: unknown } | undefined)?.topStrip;
+        if (Array.isArray(top)) parts.push(`T:${top.join(',')}`);
+        return parts.join('|');
+    }
+
+    setLayoutProfile(profile: BoardLayoutProfile | null | undefined): void {
+        this.layoutProfile = profile ?? null;
+    }
+
+    getLayoutProfile(): BoardLayoutProfile | null {
+        return this.layoutProfile;
+    }
+
+    /** 给定列符号个数时的整列像素高（含行距） */
+    columnHeightForCount(columnCount: number): number {
+        return this.columnPixelHeight(0, columnCount);
+    }
+
+    /** 当前已渲染盘面每列 visibleRows */
+    getVisibleRows(): readonly number[] {
+        return this.currentVisibleRows;
+    }
+
+    setTopStripMap(refs: readonly CellRef[] | null | undefined): void {
+        this.topMappedKeys = new Set((refs ?? []).map((r) => `${r.col},${r.row}`));
+    }
+
+    isTopMappedCell(col: number, row: number): boolean {
+        return this.topMappedKeys.has(`${col},${row}`);
+    }
+
     getCatalog(): SymbolProvider | null {
         return this.catalog;
     }
@@ -49,17 +162,28 @@ export class BoardView extends Component {
         return this.symbolViews[col]?.[row] ?? null;
     }
 
-    /** 全量重建并渲染 state.board.resolved */
-    render(state: PresentationState): void {
+    render(state: PresentationState, opts?: { suppressMultiDigits?: boolean }): void {
         const { cols, visibleRows } = state.board.topology;
-        const rows = Math.max(...visibleRows);
-        this.rebuildGrid(cols, rows);
+        const sameTopo =
+            this.currentCols === cols &&
+            this.currentVisibleRows.length === visibleRows.length &&
+            this.currentVisibleRows.every((v, i) => v === visibleRows[i]);
+        if (!sameTopo) {
+            this.rebuildGrid(cols, visibleRows);
+        }
+        const hideDigits = !!opts?.suppressMultiDigits;
         for (let c = 0; c < cols; c++) {
-            for (let r = 0; r < visibleRows[c]; r++) {
-                const cell = state.board.resolved[c][r];
+            for (let r = 0; r < visibleRows[c]!; r++) {
+                const cell = state.board.resolved[c]![r]!;
                 const ent = cell.entityRef ? state.board.entities[cell.entityRef] : null;
-                this.applyCell(c, r, cell.symbolId, ent?.multiplier ?? null);
+                const mult = hideDigits ? null : ent?.multiplier ?? null;
+                const node = this.cellNodes[c]?.[r];
+                if (node) node.active = true;
+                this.applyCell(c, r, cell.symbolId, mult);
             }
+        }
+        for (let c = 0; c < cols; c++) {
+            this.applyColumnSpanVisual(c, state);
         }
         if (this.selected) this.setSelected(this.selected.col, this.selected.row);
     }
@@ -67,7 +191,6 @@ export class BoardView extends Component {
     private selected: { col: number; row: number } | null = null;
     private selectionNode: Node | null = null;
 
-    /** 高亮选中格；传 null 清除 */
     setSelected(col: number | null, row?: number): void {
         if (col === null) {
             this.selected = null;
@@ -75,19 +198,26 @@ export class BoardView extends Component {
             return;
         }
         this.selected = { col, row: row! };
+        if (this.columnSpanCols.has(col)) {
+            this.selectionForColumnSpan(col);
+            return;
+        }
+        const cellH = this.cellHeights[col]?.[row!] ?? this.cellH;
         if (!this.selectionNode || !this.selectionNode.isValid || this.selectionNode.parent !== this.node) {
             const n = new Node('selection');
             n.addComponent(UITransform);
-            const g = n.addComponent(Graphics);
-            g.lineWidth = 3;
-            g.strokeColor = new Color(255, 210, 60, 255);
-            g.rect(-this.cellW / 2, -this.cellH / 2, this.cellW, this.cellH);
-            g.stroke();
+            n.addComponent(Graphics);
             this.node.addChild(n);
             this.selectionNode = n;
         }
+        const g = this.selectionNode.getComponent(Graphics)!;
+        g.clear();
+        g.lineWidth = 3;
+        g.strokeColor = new Color(255, 210, 60, 255);
+        g.rect(-this.cellW / 2, -cellH / 2, this.cellW, cellH);
+        g.stroke();
         this.selectionNode.active = true;
-        this.selectionNode.setPosition(this.cellPosition(col, row!, this.currentCols, this.currentRows));
+        this.selectionNode.setPosition(this.cellPosition(col, row!));
         this.selectionNode.setSiblingIndex(this.node.children.length - 1);
     }
 
@@ -98,70 +228,257 @@ export class BoardView extends Component {
     applyCell(col: number, row: number, symbolId: number | null, multiplier: number | null = null): void {
         const view = this.symbolViews[col]?.[row];
         if (!view) return;
+        // 主盘始终显示全部 visibleRows（含顶条映射的 row0）；顶条是同格镜像编辑入口
+        view.node.active = true;
+        const columnCount = this.currentVisibleRows[col] ?? null;
+        const tier = columnCount != null ? columnCountToTier(columnCount) : null;
+        const cellH = this.cellHeights[col]?.[row] ?? this.cellPixelHeight(columnCount ?? 0);
+        // 列占满符号由 applyColumnSpanVisual 统一画；此处先占位
+        const entry = symbolId != null ? this.catalog?.getEntry(symbolId) : null;
+        if (isColumnFillEntry(entry) || this.isLegacyBonusId(symbolId)) {
+            view.setVariantKey(null);
+            view.setSymbol(null);
+            view.setMultiplier(null);
+            return;
+        }
+        view.setVariantKey(null);
+        view.setPixelPerfect(true);
+        if (this.catalog) view.setup(this.catalog, this.cellW, cellH, 1);
+        view.setColumnContext(columnCount, tier);
         view.setSymbol(symbolId);
         view.setMultiplier(multiplier);
     }
 
-    boardSize(cols: number, rows: number): { w: number; h: number } {
-        return {
-            w: cols * this.cellW + (cols - 1) * this.colGap,
-            h: rows * this.cellH + (rows - 1) * this.rowGap,
-        };
+    /** 未挂 placement 的旧包：仍认 profile.roles.bonus */
+    private isLegacyBonusId(symbolId: number | null | undefined): boolean {
+        if (symbolId == null || !this.layoutProfile) return false;
+        const entry = this.catalog?.getEntry(symbolId);
+        if (entry && (entry.placementMainId || '').trim()) return false;
+        return symbolId === this.layoutProfile.roles.bonus;
     }
 
-    /** (col,row) → 本节点局部坐标；row 0 在顶部 */
-    cellPosition(col: number, row: number, cols: number, rows: number): Vec3 {
-        const { w, h } = this.boardSize(cols, rows);
-        const x = -w / 2 + this.cellW / 2 + col * (this.cellW + this.colGap);
-        const y = h / 2 - this.cellH / 2 - row * (this.cellH + this.rowGap);
-        return new Vec3(x, y, 0);
-    }
+    private isColumnFillId = (symbolId: number): boolean => {
+        const entry = this.catalog?.getEntry(symbolId);
+        if (isColumnFillEntry(entry)) return true;
+        return this.isLegacyBonusId(symbolId);
+    };
 
-    /** 把节点局部坐标换算成 (col,row)；未命中返回 null */
-    hitCell(localX: number, localY: number, cols: number, rows: number): { col: number; row: number } | null {
-        const { w, h } = this.boardSize(cols, rows);
-        const x = localX + w / 2;
-        const y = h / 2 - localY;
-        if (x < 0 || y < 0 || x >= w || y >= h) return null;
-        const col = Math.floor(x / (this.cellW + this.colGap));
-        const row = Math.floor(y / (this.cellH + this.rowGap));
-        if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
-        return { col, row };
-    }
-
-    private currentCols = 0;
-    private currentRows = 0;
-
-    private rebuildGrid(cols: number, rows: number): void {
-        this.node.removeAllChildren();
-        this.cellNodes = [];
-        this.symbolViews = [];
-        this.currentCols = cols;
-        this.currentRows = rows;
-        this.ensureTouch(cols, rows);
-        if (this.showGridBg) this.drawGridBg(cols, rows);
-        for (let c = 0; c < cols; c++) {
-            const colNodes: Node[] = [];
-            const colViews: SymbolView[] = [];
-            for (let r = 0; r < rows; r++) {
-                const n = new Node(`cell_${c}_${r}`);
-                n.addComponent(UITransform).setContentSize(this.cellW, this.cellH);
-                const view = n.addComponent(SymbolView);
-                if (this.catalog) view.setup(this.catalog, this.cellW, this.cellH, this.cellFill);
-                n.setPosition(this.cellPosition(c, r, cols, rows));
-                this.node.addChild(n);
-                colNodes.push(n);
-                colViews.push(view);
+    /**
+     * column-fill：只在锚点行显示一只，高度=整列主盘设计高，其它主盘格隐藏。
+     */
+    applyColumnSpanVisual(col: number, state: PresentationState): void {
+        const profile = this.layoutProfile;
+        if (!profile) return;
+        const columnCount = this.currentVisibleRows[col] ?? 0;
+        const spanRow = findColumnSpanRow(
+            profile,
+            col,
+            columnCount,
+            state.board.resolved,
+            this.isColumnFillId,
+        );
+        if (spanRow == null) {
+            this.columnSpanCols.delete(col);
+            for (let r = 0; r < columnCount; r++) {
+                const n = this.cellNodes[col]?.[r];
+                if (!n) continue;
+                n.active = true;
+                const cellH = this.cellPixelHeight(columnCount);
+                n.getComponent(UITransform)?.setContentSize(this.cellW, cellH);
+                n.setPosition(this.cellPosition(col, r));
             }
-            this.cellNodes.push(colNodes);
-            this.symbolViews.push(colViews);
+            return;
+        }
+
+        const spanId = state.board.resolved[col]?.[spanRow]?.symbolId ?? null;
+        if (spanId == null) return;
+
+        this.columnSpanCols.add(col);
+        // 整列占满高度 = visibleRows × 档高，与「N 个小符号」同高
+        const colH = this.columnSpanPixelHeight(columnCount);
+        const x = this.columnCenterX(col);
+        const { h: boardH } = this.boardSize(this.currentCols, this.currentVisibleRows);
+        const centerY = boardH / 2 - colH / 2;
+
+        for (let r = 0; r < columnCount; r++) {
+            const n = this.cellNodes[col]?.[r];
+            const view = this.symbolViews[col]?.[r];
+            if (!n || !view) continue;
+            if (r === spanRow) {
+                n.active = true;
+                n.getComponent(UITransform)?.setContentSize(this.cellW, colH);
+                n.setPosition(x, centerY, 0);
+                view.setPixelPerfect(false);
+                if (this.catalog) view.setup(this.catalog, this.cellW, colH, 1);
+                view.setColumnContext(null, null);
+                view.setVariantKey(null);
+                view.setSymbol(spanId);
+                view.setMultiplier(null);
+                this.forceHeightFill(view, colH);
+            } else {
+                n.active = false;
+                view.setSymbol(null);
+            }
         }
     }
 
-    private drawGridBg(cols: number, rows: number): void {
+    /** 列占满专用高度：按列符号数全算，不因顶条映射少一格 */
+    private columnSpanPixelHeight(columnCount: number): number {
+        if (columnCount <= 0) return 0;
+        const cellH = this.cellPixelHeight(columnCount);
+        return columnCount * cellH + Math.max(0, columnCount - 1) * this.rowGap;
+    }
+
+    /** 把符号 content 缩放到指定高度（宽随比例，可超设计格宽） */
+    private forceHeightFill(view: SymbolView, targetH: number): void {
+        const content = view.contentNode;
+        if (!content || targetH <= 0) return;
+        const ut = content.getComponent(UITransform);
+        const h = ut?.contentSize.height ?? 0;
+        if (!(h > 0)) return;
+        const s = targetH / h;
+        content.setScale(s, s, 1);
+    }
+
+    /** 选中列占满符号时，框住整列（与 N 个小格同高） */
+    private selectionForColumnSpan(col: number): void {
+        const colH = this.columnSpanPixelHeight(this.currentVisibleRows[col] ?? 0);
+        const { h: boardH } = this.boardSize(this.currentCols, this.currentVisibleRows);
+        const x = this.columnCenterX(col);
+        const centerY = boardH / 2 - colH / 2;
+        if (!this.selectionNode || !this.selectionNode.isValid || this.selectionNode.parent !== this.node) {
+            const n = new Node('selection');
+            n.addComponent(UITransform);
+            n.addComponent(Graphics);
+            this.node.addChild(n);
+            this.selectionNode = n;
+        }
+        const g = this.selectionNode.getComponent(Graphics)!;
+        g.clear();
+        g.lineWidth = 3;
+        g.strokeColor = new Color(255, 210, 60, 255);
+        g.rect(-this.cellW / 2, -colH / 2, this.cellW, colH);
+        g.stroke();
+        this.selectionNode.active = true;
+        this.selectionNode.setPosition(x, centerY, 0);
+        this.selectionNode.setSiblingIndex(this.node.children.length - 1);
+    }
+
+    boardSize(cols: number, rowsOrVisible: number | readonly number[]): { w: number; h: number } {
+        const visibleRows =
+            typeof rowsOrVisible === 'number'
+                ? this.currentVisibleRows.length === cols
+                    ? this.currentVisibleRows
+                    : Array.from({ length: cols }, () => rowsOrVisible)
+                : rowsOrVisible;
+        const w = cols * this.cellW + Math.max(0, cols - 1) * this.colGap;
+        let h = 0;
+        for (let c = 0; c < cols; c++) {
+            const colH = this.columnPixelHeight(c, visibleRows[c] ?? 0);
+            if (colH > h) h = colH;
+        }
+        return { w, h };
+    }
+
+    private columnPixelHeight(_col: number, columnCount: number): number {
+        if (columnCount <= 0) return 0;
+        const cellH = this.cellPixelHeight(columnCount);
+        return columnCount * cellH + Math.max(0, columnCount - 1) * this.rowGap;
+    }
+
+    private cellPixelHeight(columnCount: number): number {
+        return cellDesignHeightForColumn(columnCount) ?? this.cellH;
+    }
+
+    columnCenterX(col: number): number {
+        const { w } = this.boardSize(this.currentCols || col + 1, this.currentVisibleRows);
+        return -w / 2 + this.cellW / 2 + col * (this.cellW + this.colGap);
+    }
+
+    cellPosition(col: number, row: number, _cols?: number, _rows?: number): Vec3 {
+        const { w, h } = this.boardSize(this.currentCols, this.currentVisibleRows);
+        const x = -w / 2 + this.cellW / 2 + col * (this.cellW + this.colGap);
+        const columnCount = this.currentVisibleRows[col] ?? 0;
+        const cellH = this.cellPixelHeight(columnCount);
+        let y = h / 2;
+        for (let r = 0; r < row; r++) {
+            y -= cellH + this.rowGap;
+        }
+        y -= cellH / 2;
+        return new Vec3(x, y, 0);
+    }
+
+    hitCell(localX: number, localY: number): { col: number; row: number } | null {
+        const cols = this.currentCols;
+        const visibleRows = this.currentVisibleRows;
+        const { w, h } = this.boardSize(cols, visibleRows);
+        const x = localX + w / 2;
+        const yFromTop = h / 2 - localY;
+        if (x < 0 || yFromTop < 0 || x >= w || yFromTop >= h) return null;
+        const stride = this.cellW + this.colGap;
+        const col = Math.floor(x / stride);
+        if (col < 0 || col >= cols) return null;
+        if (x - col * stride > this.cellW) return null;
+
+        const columnCount = visibleRows[col] ?? 0;
+        const cellH = this.cellPixelHeight(columnCount);
+        let cursor = 0;
+        for (let r = 0; r < columnCount; r++) {
+            if (yFromTop >= cursor && yFromTop < cursor + cellH) return { col, row: r };
+            cursor += cellH + this.rowGap;
+        }
+        return null;
+    }
+
+    private currentCols = 0;
+    private currentVisibleRows: number[] = [];
+
+    private rebuildGrid(cols: number, visibleRows: readonly number[]): void {
+        this.node.removeAllChildren();
+        this.cellNodes = [];
+        this.symbolViews = [];
+        this.cellHeights = [];
+        this.columnSpanCols.clear();
+        this.gridBg = null;
+        this.selectionNode = null;
+        this.currentCols = cols;
+        this.currentVisibleRows = visibleRows.slice();
+        this.ensureTouch();
+        if (this.showGridBg) this.drawGridBg(cols, visibleRows);
+        for (let c = 0; c < cols; c++) {
+            const colNodes: Node[] = [];
+            const colViews: SymbolView[] = [];
+            const colHeights: number[] = [];
+            const columnCount = visibleRows[c]!;
+            const cellH = this.cellPixelHeight(columnCount);
+            const tier = columnCountToTier(columnCount);
+            for (let r = 0; r < columnCount; r++) {
+                const n = new Node(`cell_${c}_${r}`);
+                // 设计框尺寸；符号可超框画出
+                n.addComponent(UITransform).setContentSize(this.cellW, cellH);
+                n.active = true;
+                const view = n.addComponent(SymbolView);
+                if (this.catalog) {
+                    view.setup(this.catalog, this.cellW, cellH, 1);
+                    view.setPixelPerfect(true);
+                }
+                view.setColumnContext(columnCount, tier);
+                n.setPosition(this.cellPosition(c, r));
+                this.node.addChild(n);
+                colNodes.push(n);
+                colViews.push(view);
+                colHeights.push(cellH);
+            }
+            this.cellNodes.push(colNodes);
+            this.symbolViews.push(colViews);
+            this.cellHeights.push(colHeights);
+        }
+    }
+
+    private drawGridBg(cols: number, visibleRows: readonly number[]): void {
         const bg = new Node('grid_bg');
         const ui = bg.addComponent(UITransform);
-        const { w, h } = this.boardSize(cols, rows);
+        const { w, h } = this.boardSize(cols, visibleRows);
         ui.setContentSize(w, h);
         const g = bg.addComponent(Graphics);
         g.lineWidth = 1;
@@ -169,15 +486,12 @@ export class BoardView extends Component {
         g.fillColor = new Color(20, 24, 40, 160);
         g.rect(-w / 2, -h / 2, w, h);
         g.fill();
-        for (let c = 0; c <= cols; c++) {
-            const x = -w / 2 + c * (this.cellW + this.colGap) - (c > 0 && c < cols ? this.colGap / 2 : 0);
-            g.moveTo(x, -h / 2);
-            g.lineTo(x, h / 2);
-        }
-        for (let r = 0; r <= rows; r++) {
-            const y = -h / 2 + r * (this.cellH + this.rowGap) - (r > 0 && r < rows ? this.rowGap / 2 : 0);
-            g.moveTo(-w / 2, y);
-            g.lineTo(w / 2, y);
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < visibleRows[c]!; r++) {
+                const cellH = this.cellPixelHeight(visibleRows[c]!);
+                const p = this.cellPosition(c, r);
+                g.rect(p.x - this.cellW / 2, p.y - cellH / 2, this.cellW, cellH);
+            }
         }
         g.stroke();
         this.node.addChild(bg);
@@ -187,9 +501,9 @@ export class BoardView extends Component {
     private touchBound = false;
     private lastPainted: { col: number; row: number } | null = null;
 
-    private ensureTouch(cols: number, rows: number): void {
+    private ensureTouch(): void {
         const ui = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
-        const { w, h } = this.boardSize(cols, rows);
+        const { w, h } = this.boardSize(this.currentCols, this.currentVisibleRows);
         ui.setContentSize(w, h);
         if (this.touchBound) return;
         this.touchBound = true;
@@ -197,7 +511,7 @@ export class BoardView extends Component {
         const hitFromEvent = (e: EventTouch): { col: number; row: number } | null => {
             const uiPos = e.getUILocation();
             const local = ui.convertToNodeSpaceAR(new Vec3(uiPos.x, uiPos.y, 0));
-            return this.hitCell(local.x, local.y, this.currentCols, this.currentRows);
+            return this.hitCell(local.x, local.y);
         };
         const press = (e: EventTouch): void => {
             const hit = hitFromEvent(e);

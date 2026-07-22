@@ -2,7 +2,7 @@
  * EditorHud — 横板(1280×720)编辑 UI：
  *   顶部工具栏 | 左侧盘面(由 Main 摆放) | 右侧常驻 Inspector 面板 | 底部帧导航
  * Inspector：帧信息 + 选中格信息 + symbol 面板（点选即应用，无弹窗）。
- * 后续动画参数(M4)继续往 Inspector 里加分区。
+ * 内容超出高度时可滚轮/拖动滚动，避免动画分区被挤出可视区。
  */
 
 import {
@@ -17,10 +17,36 @@ import {
     Color,
     Graphics,
     Vec3,
+    EventTouch,
+    EventMouse,
+    Mask,
 } from 'cc';
 import type { SymbolCatalog } from './SymbolCatalog';
 
 const { ccclass } = _decorator;
+
+export const BE_DESIGN_W = 1280;
+export const BE_DESIGN_H = 720;
+export const BE_PANEL_W = 340;
+export const BE_TOOLBAR_H = 52;
+export const BE_FRAME_NAV_H = 56;
+export const BE_MARGIN = 12;
+/** Inspector 内容区相对面板的上下内边距（滚动视口） */
+const BE_INSPECTOR_PAD = 8;
+
+/** 左侧盘面可用矩形（工具栏 / 底栏 / 右 Inspector 之外） */
+export function boardAreaRect(): { cx: number; cy: number; w: number; h: number } {
+    const w = BE_DESIGN_W - BE_PANEL_W - BE_MARGIN * 3;
+    const h = BE_DESIGN_H - BE_TOOLBAR_H - BE_FRAME_NAV_H - BE_MARGIN * 2;
+    const left = -BE_DESIGN_W / 2 + BE_MARGIN;
+    const top = BE_DESIGN_H / 2 - BE_TOOLBAR_H - BE_MARGIN;
+    return {
+        cx: left + w / 2,
+        cy: top - h / 2,
+        w,
+        h,
+    };
+}
 
 export interface HudCallbacks {
     onPrevFrame(): void;
@@ -33,8 +59,10 @@ export interface HudCallbacks {
     onImport(): void;
     onPlay(): void;
     onStop(): void;
-    /** 选刷子（null = 橡皮擦/清空刷）；重复点同一个 = 取消刷子 */
-    onPickBrush(symbolId: number | null): void;
+    /** 选刷子（null = 橡皮擦）；brushKey 区分同 id 的竖/横槽，如 "1" / "1@top-horizontal-wide" */
+    onPickBrush(symbolId: number | null, brushKey?: string): void;
+    /** 刷子视觉档：null=跟列；1..6=指定档（会同步列符号数） */
+    onCycleBrushTier(dir: 1 | -1): void;
     /** 动画分区 */
     onCycleFrameKind(dir: 1 | -1): void;
     onCycleTemplate(dir: 1 | -1): void;
@@ -45,6 +73,8 @@ export interface HudCallbacks {
     onGenerateCompactFrame(): void;
     /** 基于当前帧自动生成倍率球扩散 expandPost 帧 */
     onGenerateExpandFrame(): void;
+    /** 基于当前帧生成横栏左移一格 topStep 帧 */
+    onGenerateTopStepFrame(): void;
     /** 基于当前帧自动生成倍率数字收集 multiCollect 帧 */
     onGenerateMultiCollectFrame(): void;
     /** 盘面列距/行距调整 */
@@ -55,6 +85,12 @@ export interface HudCallbacks {
     onAdjustMultiplier(dir: 1 | -1): void;
     /** 选中格倍率直接设值（输入框） */
     onSetMultiplier(value: number): void;
+    /** 调整指定列（或当前选中列）的符号个数 */
+    onAdjustColumnRows(dir: 1 | -1, col?: number): void;
+    /** 点选「列符号数」里的某一列 */
+    onPickColumn(col: number): void;
+    /** 跳转 H5 符号编辑器 */
+    onOpenSymbolEditor?(): void;
 }
 
 /** Main 每次切帧/改动后喂给 HUD 的动画分区数据 */
@@ -68,9 +104,9 @@ export interface AnimSectionModel {
     playWithPrev: boolean;
 }
 
-const DESIGN_W = 1280;
-const DESIGN_H = 720;
-const PANEL_W = 340;
+const DESIGN_W = BE_DESIGN_W;
+const DESIGN_H = BE_DESIGN_H;
+const PANEL_W = BE_PANEL_W;
 const BTN_H = 40;
 
 @ccclass('EditorHud')
@@ -89,6 +125,11 @@ export class EditorHud extends Component {
     private gameLabel: Label | null = null;
     private brushRoot: Node | null = null;
     private inspectorPanel: Node | null = null;
+    /** Inspector 可滚动内容根（背景固定，内容滚） */
+    private inspectorContent: Node | null = null;
+    private inspectorScrollY = 0;
+    /** 内容最低 Y（越负越高）；用于算 maxScroll */
+    private inspectorContentMinY = 0;
     /** 刷子区顶部 Y（重建刷子时复用） */
     private brushSectionTop = 0;
     /** 动画区标题节点（刷子高度变化时需下移） */
@@ -97,9 +138,15 @@ export class EditorHud extends Component {
     private multiValueEdit: EditBox | null = null;
     /** 避免 setMultiplierEditor 回写时触发 editing 回调 */
     private multiEditSilent = false;
+    private columnRowsRow: Node | null = null;
+    private columnRowsLabel: Label | null = null;
+    private columnOccupancyRoot: Node | null = null;
+    private columnOccupancyLabels: Label[] = [];
+    private brushTierLabel: Label | null = null;
+    private brushTierRow: Node | null = null;
 
     /** 盘面区中心（给 Main 摆 BoardView 用） */
-    static readonly BOARD_CENTER = new Vec3(-(PANEL_W / 2) - 10, -10, 0);
+    static readonly BOARD_CENTER = new Vec3(boardAreaRect().cx, boardAreaRect().cy, 0);
 
     init(callbacks: HudCallbacks, catalog: SymbolCatalog, gameLabel = ''): void {
         this.callbacks = callbacks;
@@ -143,32 +190,98 @@ export class EditorHud extends Component {
         }
     }
 
+    /**
+     * 选中列符号数摘要（配合下方六列面板）。
+     * rows=null → 仅清选中高亮文案。
+     */
+    setColumnRowsEditor(rows: number | null, tierLabel = ''): void {
+        if (!this.columnRowsRow) return;
+        this.columnRowsRow.active = true;
+        if (this.columnRowsLabel) {
+            if (rows === null) {
+                this.columnRowsLabel.string = '点盘面或下方列头';
+            } else {
+                this.columnRowsLabel.string = tierLabel
+                    ? `${rows} 个 → ${tierLabel}`
+                    : `${rows} 个/列`;
+            }
+        }
+    }
+
+    /** 刷新六列符号数显示；activeCol 高亮 */
+    setColumnOccupancy(rows: readonly number[], activeCol: number | null = null): void {
+        for (let c = 0; c < this.columnOccupancyLabels.length; c++) {
+            const lab = this.columnOccupancyLabels[c];
+            if (!lab) continue;
+            lab.string = String(rows[c] ?? '-');
+            lab.color =
+                activeCol === c ? new Color(255, 220, 100, 255) : new Color(230, 235, 255, 255);
+        }
+    }
+
+    /** 刷子视觉档文案：跟列 / tier-N */
+    setBrushTierInfo(text: string, visible = true): void {
+        if (!this.brushTierRow) return;
+        this.brushTierRow.active = visible;
+        if (this.brushTierLabel) this.brushTierLabel.string = text;
+    }
+
     /** 换游戏包后重建刷子面板 */
     rebuildBrushes(catalog: SymbolCatalog): void {
-        if (!this.inspectorPanel || !this.callbacks) return;
+        if (!this.inspectorContent || !this.callbacks) return;
         this.brushHighlights.clear();
         if (this.brushRoot?.isValid) this.brushRoot.destroy();
         this.brushRoot = null;
 
         const { root, height } = this.makeBrushGrid(catalog, this.callbacks);
         root.setPosition(0, this.brushSectionTop, 0);
-        this.inspectorPanel.addChild(root);
+        this.inspectorContent.addChild(root);
         this.brushRoot = root;
 
         // 动画区紧跟刷子下方
         const animTop = this.brushSectionTop - height - 18;
         this.animSectionTop = animTop - 28;
-        if (this.animTitleNode?.isValid) this.animTitleNode.setPosition(0, animTop, 0);
+        if (this.animTitleNode?.isValid) {
+            this.animTitleNode.setPosition(-PANEL_W / 2 + 16, animTop, 0);
+        }
         if (this.animSectionRoot?.isValid) {
-            // setAnimSection 会按 animSectionTop 布局；先清掉旧内容高度差
             this.animSectionRoot.removeAllChildren();
         }
+        this.setInspectorContentMinY(animTop - 40);
     }
 
-    /** 更新盘面间距显示 */
-    setGapInfo(colGap: number, rowGap: number): void {
-        if (this.colGapLabel) this.colGapLabel.string = String(colGap);
-        if (this.rowGapLabel) this.rowGapLabel.string = String(rowGap);
+    /** Inspector 滚轮/拖动：露出被挤出屏外的动画区等 */
+    private setInspectorScroll(next: number): void {
+        if (!this.inspectorContent) return;
+        const viewBottom = -DESIGN_H / 2 + BE_INSPECTOR_PAD;
+        const maxScroll = Math.max(0, viewBottom - this.inspectorContentMinY);
+        this.inspectorScrollY = Math.max(0, Math.min(maxScroll, next));
+        this.inspectorContent.setPosition(0, this.inspectorScrollY, 0);
+    }
+
+    private setInspectorContentMinY(minY: number): void {
+        this.inspectorContentMinY = minY;
+        this.setInspectorScroll(this.inspectorScrollY);
+    }
+
+    /** 更新盘面间距显示；locked 轴显示「0·锁」 */
+    setGapInfo(
+        colGap: number,
+        rowGap: number,
+        locks?: { lockCol?: boolean; lockRow?: boolean },
+    ): void {
+        if (this.colGapLabel) {
+            this.colGapLabel.string = locks?.lockCol ? `${colGap}·锁` : String(colGap);
+            this.colGapLabel.color = locks?.lockCol
+                ? new Color(160, 170, 190, 255)
+                : new Color(240, 244, 255, 255);
+        }
+        if (this.rowGapLabel) {
+            this.rowGapLabel.string = locks?.lockRow ? `${rowGap}·锁` : String(rowGap);
+            this.rowGapLabel.color = locks?.lockRow
+                ? new Color(160, 170, 190, 255)
+                : new Color(240, 244, 255, 255);
+        }
     }
 
     /** 更新尺寸显示（格子尺寸 / 当前 symbol 实际渲染尺寸） */
@@ -176,11 +289,11 @@ export class EditorHud extends Component {
         if (this.sizeInfoLabel) this.sizeInfoLabel.string = text;
     }
 
-    /** 高亮当前刷子槽位；undefined = 全部取消 */
-    setBrushHighlight(symbolId: number | null | undefined): void {
-        const key = symbolId === undefined ? '' : symbolId === null ? 'eraser' : String(symbolId);
+    /** 高亮刷子槽；传 hlKey（如 "1" / "1@top-horizontal-wide" / "eraser"）；空串/undefined 全关 */
+    setBrushHighlight(brushKey: string | null | undefined): void {
+        const key = brushKey ?? '';
         this.brushHighlights.forEach((n, k) => {
-            n.active = k === key;
+            n.active = !!key && k === key;
         });
     }
 
@@ -199,6 +312,7 @@ export class EditorHud extends Component {
             ['■停止', () => cb.onStop(), 88],
             ['导出', () => cb.onExport(), 76],
             ['导入', () => cb.onImport(), 76],
+            ['→符号', () => cb.onOpenSymbolEditor?.(), 88],
         ];
         const gap = 8;
         const total = items.reduce((s, it) => s + it[2], 0) + gap * (items.length - 1);
@@ -245,7 +359,7 @@ export class EditorHud extends Component {
         panel.setPosition(px, 0, 0);
         this.inspectorPanel = panel;
 
-        // 面板背景
+        // 面板背景（固定，不随内容滚）
         const bg = new Node('panel_bg');
         const bgUi = bg.addComponent(UITransform);
         bgUi.setContentSize(PANEL_W, DESIGN_H);
@@ -260,49 +374,80 @@ export class EditorHud extends Component {
         g.stroke();
         panel.addChild(bg);
 
+        // 滚动视口：内容超出 720 时用滚轮/拖动查看动画区
+        const viewport = new Node('InspectorViewport');
+        const viewUi = viewport.addComponent(UITransform);
+        viewUi.setContentSize(PANEL_W, DESIGN_H - BE_INSPECTOR_PAD * 2);
+        viewport.addComponent(Mask).type = Mask.Type.RECT;
+        viewport.setPosition(0, 0, 0);
+        panel.addChild(viewport);
+
+        const content = new Node('InspectorContent');
+        content.addComponent(UITransform).setContentSize(PANEL_W, DESIGN_H);
+        content.setPosition(0, 0, 0);
+        viewport.addChild(content);
+        this.inspectorContent = content;
+        this.inspectorScrollY = 0;
+        this.inspectorContentMinY = -DESIGN_H / 2;
+
+        viewport.on(Node.EventType.MOUSE_WHEEL, (e: EventMouse) => {
+            this.setInspectorScroll(this.inspectorScrollY - e.getScrollY() * 0.4);
+        });
+        viewport.on(Node.EventType.TOUCH_MOVE, (e: EventTouch) => {
+            this.setInspectorScroll(this.inspectorScrollY + e.getDeltaY());
+        });
+
         let cursorY = DESIGN_H / 2 - 30;
 
         // — 帧信息 —
-        cursorY = this.addSectionTitle(panel, 'Inspector', cursorY);
-        this.frameInfoLabel = this.addInfoLabel(panel, '帧 -', cursorY);
+        cursorY = this.addSectionTitle(content, 'Inspector', cursorY);
+        this.frameInfoLabel = this.addInfoLabel(content, '帧 -', cursorY);
         cursorY -= 30;
-        this.cellInfoLabel = this.addInfoLabel(panel, '未选刷子', cursorY);
+        this.cellInfoLabel = this.addInfoLabel(content, '未选刷子', cursorY);
         cursorY -= 36;
 
         // — 选中格倍率（仅 multi 球显示）—
-        cursorY = this.buildMultiplierRow(panel, cursorY);
+        cursorY = this.buildMultiplierRow(content, cursorY);
+
+        // — 列符号数（常显六列 + 选中列 −/+）—
+        cursorY = this.addSectionTitle(content, '列符号数（2~7）', cursorY);
+        cursorY = this.buildColumnOccupancyBlock(content, cursorY);
+
+        // — 刷子视觉档 —
+        cursorY = this.buildBrushTierRow(content, cursorY);
 
         // — 游戏包切换 —
-        cursorY = this.addSectionTitle(panel, '游戏包 (gameId)', cursorY);
-        cursorY = this.buildGameRow(panel, cursorY, gameLabel);
+        cursorY = this.addSectionTitle(content, '游戏包 (gameId)', cursorY);
+        cursorY = this.buildGameRow(content, cursorY, gameLabel);
 
         // — 盘面间距（列距 / 行距，一行两组） —
-        cursorY = this.buildGapRow(panel, cursorY);
+        cursorY = this.buildGapRow(content, cursorY);
 
         // — 尺寸信息（格子 / 当前 symbol 实际渲染尺寸） —
-        this.sizeInfoLabel = this.addInfoLabel(panel, '尺寸 -', cursorY);
+        this.sizeInfoLabel = this.addInfoLabel(content, '尺寸 -', cursorY);
         this.sizeInfoLabel.fontSize = 15;
         this.sizeInfoLabel.lineHeight = 19;
         this.sizeInfoLabel.color = new Color(170, 220, 170, 255);
         cursorY -= 44;
 
         // — symbol 刷子面板 —
-        cursorY = this.addSectionTitle(panel, 'Symbol 刷子（选中后在盘面刷）', cursorY);
+        cursorY = this.addSectionTitle(content, 'Symbol 刷子（先选大小档再刷）', cursorY);
         this.brushSectionTop = cursorY;
         const { root, height } = this.makeBrushGrid(catalog, cb);
         root.setPosition(0, cursorY, 0);
-        panel.addChild(root);
+        content.addChild(root);
         this.brushRoot = root;
         cursorY -= height + 18;
 
         // — 动画分区（内容由 setAnimSection 动态重建） —
-        this.animTitleNode = this.addSectionTitleNode(panel, '动画（当前帧转移）', cursorY);
+        this.animTitleNode = this.addSectionTitleNode(content, '动画（当前帧转移）', cursorY);
         cursorY -= 28;
         const animRoot = new Node('AnimSection');
         animRoot.addComponent(UITransform);
-        panel.addChild(animRoot);
+        content.addChild(animRoot);
         this.animSectionRoot = animRoot;
         this.animSectionTop = cursorY;
+        this.setInspectorContentMinY(cursorY - 40);
 
         this.node.addChild(panel);
     }
@@ -366,6 +511,147 @@ export class EditorHud extends Component {
         return y - 44;
     }
 
+    /** 选中列摘要 + 六列常显符号数 */
+    private buildColumnOccupancyBlock(panel: Node, y: number): number {
+        const cb = this.callbacks!;
+
+        // 选中列 − / 值 / ＋
+        const row = new Node('col_rows_row');
+        row.addComponent(UITransform);
+        row.setPosition(0, y, 0);
+        row.active = true;
+
+        const title = new Node('col_rows_title');
+        const tui = title.addComponent(UITransform);
+        tui.setAnchorPoint(0, 0.5);
+        const tl = title.addComponent(Label);
+        tl.string = '当前列';
+        tl.fontSize = 15;
+        tl.lineHeight = 18;
+        tl.color = new Color(170, 185, 235, 255);
+        title.setPosition(-PANEL_W / 2 + 16, 0, 0);
+        row.addChild(title);
+
+        const left = -PANEL_W / 2 + 90;
+        const btnW = 40;
+        const valueW = 130;
+        const gap = 6;
+        const minusX = left + btnW / 2;
+        const valueX = minusX + btnW / 2 + gap + valueW / 2;
+        const plusX = valueX + valueW / 2 + gap + btnW / 2;
+        row.addChild(this.makeButton('−', () => cb.onAdjustColumnRows(-1), new Vec3(minusX, 0, 0), btnW));
+        row.addChild(this.makeButton('＋', () => cb.onAdjustColumnRows(1), new Vec3(plusX, 0, 0), btnW));
+
+        const vn = new Node('col_rows_val');
+        vn.addComponent(UITransform).setContentSize(valueW, BTN_H);
+        const vl = vn.addComponent(Label);
+        vl.string = '点盘面或下方列头';
+        vl.fontSize = 15;
+        vl.lineHeight = 18;
+        vl.horizontalAlign = Label.HorizontalAlign.CENTER;
+        vl.verticalAlign = Label.VerticalAlign.CENTER;
+        vl.overflow = Label.Overflow.SHRINK;
+        vl.color = new Color(255, 220, 120, 255);
+        vn.setPosition(valueX, 0, 0);
+        row.addChild(vn);
+        this.columnRowsLabel = vl;
+        panel.addChild(row);
+        this.columnRowsRow = row;
+        y -= 40;
+
+        // 六列速调（点列头选中；列内 −/+ 直接改该列符号数）
+        const grid = new Node('col_occ_grid');
+        grid.addComponent(UITransform);
+        grid.setPosition(0, y, 0);
+        this.columnOccupancyRoot = grid;
+        this.columnOccupancyLabels = [];
+        const cellW = 50;
+        const startX = -PANEL_W / 2 + 22 + cellW / 2;
+        for (let c = 0; c < 6; c++) {
+            const col = c;
+            const n = new Node(`occ_${c}`);
+            n.addComponent(UITransform).setContentSize(cellW, 56);
+            n.setPosition(startX + c * (cellW + 4), 0, 0);
+            const g = n.addComponent(Graphics);
+            g.fillColor = new Color(32, 40, 68, 255);
+            g.roundRect(-cellW / 2, -28, cellW, 56, 6);
+            g.fill();
+
+            const head = new Node('h');
+            head.addComponent(UITransform);
+            const hl = head.addComponent(Label);
+            hl.string = `C${c}`;
+            hl.fontSize = 11;
+            hl.color = new Color(140, 155, 190, 255);
+            head.setPosition(0, 18, 0);
+            n.addChild(head);
+
+            const val = new Node('v');
+            val.addComponent(UITransform);
+            const vl2 = val.addComponent(Label);
+            vl2.string = '7';
+            vl2.fontSize = 16;
+            vl2.color = new Color(230, 235, 255, 255);
+            val.setPosition(0, 2, 0);
+            n.addChild(val);
+            this.columnOccupancyLabels.push(vl2);
+
+            const minus = this.makeCompactButton('−', () => cb.onAdjustColumnRows(-1, col), new Vec3(-12, -18, 0));
+            const plus = this.makeCompactButton('＋', () => cb.onAdjustColumnRows(1, col), new Vec3(12, -18, 0));
+            n.addChild(minus);
+            n.addChild(plus);
+
+            n.on(Node.EventType.TOUCH_END, () => cb.onPickColumn(col));
+            grid.addChild(n);
+        }
+        panel.addChild(grid);
+        return y - 64;
+    }
+
+    /** 刷子大小档（跟列 / tier-1..6） */
+    private buildBrushTierRow(panel: Node, y: number): number {
+        const cb = this.callbacks!;
+        const row = new Node('brush_tier_row');
+        row.addComponent(UITransform);
+        row.setPosition(0, y, 0);
+
+        const title = new Node('brush_tier_title');
+        title.addComponent(UITransform).setAnchorPoint(0, 0.5);
+        const tl = title.addComponent(Label);
+        tl.string = '刷子大小';
+        tl.fontSize = 15;
+        tl.color = new Color(170, 185, 235, 255);
+        title.setPosition(-PANEL_W / 2 + 16, 0, 0);
+        row.addChild(title);
+
+        const left = -PANEL_W / 2 + 100;
+        const btnW = 40;
+        const valueW = 140;
+        const gap = 6;
+        const minusX = left + btnW / 2;
+        const valueX = minusX + btnW / 2 + gap + valueW / 2;
+        const plusX = valueX + valueW / 2 + gap + btnW / 2;
+        row.addChild(this.makeButton('◀', () => cb.onCycleBrushTier(-1), new Vec3(minusX, 0, 0), btnW));
+        row.addChild(this.makeButton('▶', () => cb.onCycleBrushTier(1), new Vec3(plusX, 0, 0), btnW));
+
+        const vn = new Node('brush_tier_val');
+        vn.addComponent(UITransform).setContentSize(valueW, BTN_H);
+        const vl = vn.addComponent(Label);
+        vl.string = '跟列';
+        vl.fontSize = 16;
+        vl.horizontalAlign = Label.HorizontalAlign.CENTER;
+        vl.verticalAlign = Label.VerticalAlign.CENTER;
+        vl.overflow = Label.Overflow.SHRINK;
+        vl.color = new Color(255, 210, 140, 255);
+        vn.setPosition(valueX, 0, 0);
+        row.addChild(vn);
+        this.brushTierLabel = vl;
+
+        panel.addChild(row);
+        this.brushTierRow = row;
+        return y - 42;
+    }
+
     private makeMultiplierEdit(width: number, pos: Vec3): Node {
         const n = new Node('multi_edit');
         const ui = n.addComponent(UITransform);
@@ -423,7 +709,9 @@ export class EditorHud extends Component {
         return n;
     }
 
-    /** 刷子网格；root 本地原点在区顶部中线，子项向下排布 */
+    /** 刷子网格；root 本地原点在区顶部中线，子项向下排布。
+     * 挂了 top-row-span 的符号额外插一格「横版」图标（同 id，用 variant 纹理）。
+     */
     private makeBrushGrid(
         catalog: SymbolCatalog,
         cb: HudCallbacks,
@@ -435,15 +723,42 @@ export class EditorHud extends Component {
         const gap = 4;
         const perRow = 5;
         const startX = -PANEL_W / 2 + 20 + cell / 2;
-        const all: Array<{ id: number | null; frame: SpriteFrame | null; label: string }> = catalog.all.map(
-            (e) => ({ id: e.id, frame: catalog.getFrame(e.id), label: e.name }),
-        );
-        all.push({ id: null, frame: null, label: '橡皮' });
+        type BrushItem = {
+            id: number | null;
+            frame: SpriteFrame | null;
+            label: string;
+            /** 高亮键：id / id@variantKey / eraser */
+            hlKey: string;
+        };
+        const all: BrushItem[] = [];
+        for (const e of catalog.all) {
+            const topKey = (e.placementTopStripVariantKey || '').trim();
+            const hasTopVariant =
+                (e.placementTopStripId || '').trim() === 'top-row-span' && !!topKey;
+            all.push({
+                id: e.id,
+                frame: catalog.getFrame(e.id),
+                label: hasTopVariant ? `${e.name}·竖` : e.name,
+                hlKey: String(e.id),
+            });
+            // 顶条横版变体：独立刷子槽（同逻辑 id，落点只允许顶条）
+            if (hasTopVariant) {
+                const variant = (e.visualVariants ?? []).find((v) => v.key === topKey);
+                const frame = variant?.texture ?? null;
+                all.push({
+                    id: e.id,
+                    frame,
+                    label: `${e.name}·横`,
+                    hlKey: `${e.id}@${topKey}`,
+                });
+            }
+        }
+        all.push({ id: null, frame: null, label: '橡皮', hlKey: 'eraser' });
 
         all.forEach((item, i) => {
             const col = i % perRow;
             const row = Math.floor(i / perRow);
-            const n = new Node(`pick_${item.label}`);
+            const n = new Node(`pick_${item.hlKey}`);
             const ui = n.addComponent(UITransform);
             ui.setContentSize(cell, cell);
             n.setPosition(startX + col * (cell + gap), -cell / 2 - row * (cell + gap), 0);
@@ -467,8 +782,8 @@ export class EditorHud extends Component {
                 const t = new Node('txt');
                 t.addComponent(UITransform);
                 const l = t.addComponent(Label);
-                l.string = item.label;
-                l.fontSize = 16;
+                l.string = item.label.length > 4 ? item.label.slice(0, 4) : item.label;
+                l.fontSize = 14;
                 l.color = new Color(255, 180, 180, 255);
                 n.addChild(t);
             }
@@ -482,9 +797,9 @@ export class EditorHud extends Component {
             hg.stroke();
             hl.active = false;
             n.addChild(hl);
-            this.brushHighlights.set(item.id === null ? 'eraser' : String(item.id), hl);
+            this.brushHighlights.set(item.hlKey, hl);
 
-            n.on(Node.EventType.TOUCH_END, () => cb.onPickBrush(item.id));
+            n.on(Node.EventType.TOUCH_END, () => cb.onPickBrush(item.id, item.hlKey));
             root.addChild(n);
         });
 
@@ -560,7 +875,7 @@ export class EditorHud extends Component {
         root.removeAllChildren();
         const cb = this.callbacks!;
         const left = -PANEL_W / 2 + 20;
-        const rowH = 30;
+        const rowH = 36;
         let y = this.animSectionTop;
 
         const addRow = (
@@ -583,10 +898,12 @@ export class EditorHud extends Component {
             const valueNode = new Node('row_value');
             const vui = valueNode.addComponent(UITransform);
             vui.setAnchorPoint(0, 0.5);
+            vui.setContentSize(130, rowH);
             const vl = valueNode.addComponent(Label);
             vl.string = value;
             vl.fontSize = 16;
             vl.lineHeight = 20;
+            vl.overflow = Label.Overflow.SHRINK;
             vl.color = new Color(240, 244, 255, 255);
             valueNode.setPosition(left + 92, y, 0);
             root.addChild(valueNode);
@@ -596,7 +913,7 @@ export class EditorHud extends Component {
             y -= rowH;
         };
 
-        addRow('frameKind', model.frameKind, () => cb.onCycleFrameKind(-1), () => cb.onCycleFrameKind(1));
+        addRow('帧类型', model.frameKind, () => cb.onCycleFrameKind(-1), () => cb.onCycleFrameKind(1));
         addRow('模板', model.templateLabel, () => cb.onCycleTemplate(-1), () => cb.onCycleTemplate(1));
         for (const p of model.params) {
             addRow(p.label, this.formatNum(p.value), () => cb.onParamAdjust(p.key, -1), () => cb.onParamAdjust(p.key, 1));
@@ -606,9 +923,10 @@ export class EditorHud extends Component {
             addRow('与上帧同播', model.playWithPrev ? '是' : '否', toggle, toggle);
         }
 
+        const btnY0 = y - 14;
         if (model.canPlayTransition) {
             root.addChild(
-                this.makeButton('▶ 播本帧转移', () => cb.onPlayCurrentTransition(), new Vec3(-70, y - 12, 0), 150),
+                this.makeButton('▶ 播本帧转移', () => cb.onPlayCurrentTransition(), new Vec3(-70, btnY0, 0), 150),
             );
         } else {
             const tip = new Node('tip');
@@ -619,18 +937,24 @@ export class EditorHud extends Component {
             tl.fontSize = 15;
             tl.lineHeight = 18;
             tl.color = new Color(150, 155, 180, 255);
-            tip.setPosition(left, y - 12, 0);
+            tip.setPosition(left, btnY0, 0);
             root.addChild(tip);
         }
         root.addChild(
-            this.makeButton('⤵ 生成compact帧', () => cb.onGenerateCompactFrame(), new Vec3(85, y - 12, 0), 150),
+            this.makeButton('⤵ 生成compact帧', () => cb.onGenerateCompactFrame(), new Vec3(85, btnY0, 0), 150),
         );
         root.addChild(
-            this.makeButton('⤵ 生成扩散帧', () => cb.onGenerateExpandFrame(), new Vec3(85, y - 56, 0), 150),
+            this.makeButton('⤵ 生成扩散帧', () => cb.onGenerateExpandFrame(), new Vec3(85, btnY0 - 48, 0), 150),
         );
         root.addChild(
-            this.makeButton('⤵ 生成倍率收集', () => cb.onGenerateMultiCollectFrame(), new Vec3(85, y - 100, 0), 150),
+            this.makeButton('⤵ 生成横栏步进', () => cb.onGenerateTopStepFrame(), new Vec3(85, btnY0 - 96, 0), 150),
         );
+        root.addChild(
+            this.makeButton('⤵ 生成倍率收集', () => cb.onGenerateMultiCollectFrame(), new Vec3(85, btnY0 - 144, 0), 150),
+        );
+
+        // 内容底部（按钮半高 + 边距），供滚动钳制
+        this.setInspectorContentMinY(btnY0 - 144 - BTN_H / 2 - 16);
     }
 
     private formatNum(v: number): string {
@@ -690,6 +1014,32 @@ export class EditorHud extends Component {
         n.setPosition(-PANEL_W / 2 + 20, y, 0);
         panel.addChild(n);
         return label;
+    }
+
+    private makeCompactButton(text: string, onClick: () => void, pos: Vec3): Node {
+        const width = 20;
+        const height = 18;
+        const n = new Node(`btn_${text}`);
+        const ui = n.addComponent(UITransform);
+        ui.setContentSize(width, height);
+        const g = n.addComponent(Graphics);
+        g.fillColor = new Color(52, 66, 120, 255);
+        g.roundRect(-width / 2, -height / 2, width, height, 4);
+        g.fill();
+        const tn = new Node('label');
+        tn.addComponent(UITransform);
+        const label = tn.addComponent(Label);
+        label.string = text;
+        label.fontSize = 12;
+        label.lineHeight = 14;
+        label.color = new Color(235, 240, 255, 255);
+        n.addChild(tn);
+        n.setPosition(pos);
+        n.on(Node.EventType.TOUCH_END, (e: EventTouch) => {
+            e.propagationStopped = true;
+            onClick();
+        });
+        return n;
     }
 
     private makeButton(text: string, onClick: () => void, pos: Vec3, width: number): Node {

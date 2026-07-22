@@ -5,7 +5,7 @@
   "params": {
     "gameId": {
       "type": "string",
-      "description": "game pack id under assets/resources/games/",
+      "description": "symbol pack id under assets/resources/spine-*/packs/",
       "default": "golden-seth",
       "optional": true
     },

@@ -47,7 +47,32 @@ exports.methods = {
             return { ok: false, error: String(e && e.message ? e.message : e) };
         }
     },
+
+    async switchSpine38() {
+        return runSpineSwitch('3.8');
+    },
+
+    async switchSpine42() {
+        return runSpineSwitch('4.2');
+    },
 };
+
+function runSpineSwitch(ver) {
+    const { spawnSync } = require('child_process');
+    const script = path.join(__dirname, '../../tools/switch-spine-zone.cjs');
+    const r = spawnSync(process.execPath, [script, ver], { encoding: 'utf8' });
+    const out = `${r.stdout || ''}${r.stderr || ''}`.trim();
+    if (r.status !== 0) {
+        console.error(`[symbol-tools] switch spine ${ver} 失败:`, out || r.error);
+        Editor.Dialog.warn('切换 Spine 区失败', { detail: out || String(r.error) });
+        return { ok: false, error: out || String(r.error) };
+    }
+    console.log(out);
+    Editor.Dialog.info(`已切换到 Spine ${ver}`, {
+        detail: '请重启预览或场景进程后再使用对应资源区。',
+    });
+    return { ok: true, zone: ver === '4.2' ? 'spine-4.2' : 'spine-3.8' };
+}
 
 exports.load = function () {};
 exports.unload = function () {};

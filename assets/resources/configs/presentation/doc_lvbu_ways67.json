@@ -1,0 +1,427 @@
+{
+  "docVersion": 1,
+  "id": "doc_lvbu_ways67",
+  "name": "吕布 ways-6x7",
+  "states": [
+    {
+      "version": "0.2.0",
+      "sessionId": "doc_lvbu_ways67",
+      "board": {
+        "topology": {
+          "cols": 6,
+          "visibleRows": [
+            7,
+            7,
+            7,
+            7,
+            7,
+            7
+          ],
+          "extraTop": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "extraBottom": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "display": [
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ]
+        ],
+        "resolved": [
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            },
+            {
+              "symbolId": null,
+              "entityRef": null
+            }
+          ]
+        ],
+        "entities": {},
+        "anchors": {
+          "locks": {
+            "$set": []
+          },
+          "sticks": {
+            "$set": []
+          }
+        },
+        "overlays": [],
+        "wins": []
+      },
+      "phase": "idle",
+      "sessionContext": {
+        "mode": "ng"
+      },
+      "totalWinDisplay": 0,
+      "extensions": {
+        "frame": {
+          "cascadeIndex": 0,
+          "frameIndex": 0,
+          "frameKind": "enter-table"
+        }
+      }
+    }
+  ]
+}

@@ -59,9 +59,9 @@ export const BLUE_TIMES_MOVING_PARAMS = {
 } as const;
 
 const TIMES_PARTICLE_UUID = '23a91710-4e88-42aa-b82e-6144a62e876c@f9941';
-const TIMES_PARTICLE_RES = 'games/golden-seth/effects/timesParticle/timesParticle';
+const TIMES_PARTICLE_RES = 'spine-3.8/packs/golden-seth/effects/timesParticle/timesParticle';
 const SPLIT_PARTICLE_UUID = '9de91f26-f3d5-4938-9206-32b7435032c3@f9941';
-const SPLIT_PARTICLE_RES = 'games/golden-seth/effects/split/split';
+const SPLIT_PARTICLE_RES = 'spine-3.8/packs/golden-seth/effects/split/split';
 
 export function resolveTrailSprite(prefabRef: SpriteFrame | null): SpriteFrame | null {
     if (prefabRef?.isValid) return prefabRef;

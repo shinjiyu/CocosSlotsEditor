@@ -3,7 +3,15 @@
  */
 
 export type { IrFrameKind, IrFrameExtension } from './frameExt';
-export { IR_FRAME_KINDS, readFrameExt, writeFrameExt, isIrFrameKind } from './frameExt';
+export {
+    IR_FRAME_KINDS,
+    IR_FRAME_KIND_LABELS,
+    frameKindLabel,
+    readFrameExt,
+    writeFrameExt,
+    ensureTopStripSymbols,
+    isIrFrameKind,
+} from './frameExt';
 
 export type { EditorDoc, DocValidationIssue, MakeStateOptions } from './session';
 export {
@@ -13,6 +21,7 @@ export {
     makeCompactedState,
     makeExpandedState,
     makeMultiCollectedState,
+    resizeColumnVisibleRows,
     validateDoc,
     serializeDoc,
     deserializeDoc,
@@ -26,6 +35,8 @@ export {
     SetResolvedCellCommand,
     SetEntityMultiplierCommand,
     SetFrameKindCommand,
+    SetColumnVisibleRowsCommand,
+    SetTopStripCellCommand,
     PatchFrameExtCommand,
     CompositeCommand,
     CommandHistory,

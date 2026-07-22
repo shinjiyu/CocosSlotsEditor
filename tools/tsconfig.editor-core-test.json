@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "rootDir": "../assets/scripts",
+    "outDir": "../temp/editor-core-test"
+  },
+  "files": [
+    "../assets/scripts/editor-core/selfTest.ts"
+  ]
+}
