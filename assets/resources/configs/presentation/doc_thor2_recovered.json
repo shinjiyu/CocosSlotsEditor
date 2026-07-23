@@ -1,0 +1,338 @@
+{
+  "docVersion": 1,
+  "id": "doc_thor2_recovered",
+  "name": "Thor2 还原盘面对照",
+  "states": [
+    {
+      "version": "0.2.0",
+      "sessionId": "doc_thor2_recovered",
+      "board": {
+        "topology": {
+          "cols": 6,
+          "visibleRows": [
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+          ],
+          "extraTop": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "extraBottom": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "display": [
+          [
+            {
+              "symbolId": 6,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 7,
+              "entityRef": null
+            },
+            {
+              "symbolId": 15,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 9,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 15,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 8,
+              "entityRef": null
+            },
+            {
+              "symbolId": 1,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 8,
+              "entityRef": null
+            },
+            {
+              "symbolId": 1,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 13,
+              "entityRef": null
+            },
+            {
+              "symbolId": 2,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 16,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 13,
+              "entityRef": null
+            },
+            {
+              "symbolId": 7,
+              "entityRef": null
+            },
+            {
+              "symbolId": 16,
+              "entityRef": null
+            },
+            {
+              "symbolId": 4,
+              "entityRef": null
+            }
+          ]
+        ],
+        "resolved": [
+          [
+            {
+              "symbolId": 6,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 7,
+              "entityRef": null
+            },
+            {
+              "symbolId": 15,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 9,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 15,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 8,
+              "entityRef": null
+            },
+            {
+              "symbolId": 1,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 8,
+              "entityRef": null
+            },
+            {
+              "symbolId": 1,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 13,
+              "entityRef": null
+            },
+            {
+              "symbolId": 2,
+              "entityRef": null
+            },
+            {
+              "symbolId": 14,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 16,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 13,
+              "entityRef": null
+            },
+            {
+              "symbolId": 7,
+              "entityRef": null
+            },
+            {
+              "symbolId": 16,
+              "entityRef": null
+            },
+            {
+              "symbolId": 4,
+              "entityRef": null
+            }
+          ]
+        ],
+        "entities": {},
+        "anchors": {
+          "locks": {
+            "$set": []
+          },
+          "sticks": {
+            "$set": []
+          }
+        },
+        "overlays": [],
+        "wins": []
+      },
+      "phase": "idle",
+      "sessionContext": {
+        "mode": "ng"
+      },
+      "totalWinDisplay": 0,
+      "extensions": {
+        "frame": {
+          "cascadeIndex": 0,
+          "frameIndex": 0,
+          "frameKind": "enter-table"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "source": "PowerOfThor2Recovered/powerofthor2_recovered.scene",
+    "note": "中心距 116×96 / gap 0；符号 id 为 pack power-of-thor2",
+    "colPitch": 116,
+    "rowPitch": 96,
+    "extractedAt": "2026-07-23T03:36:20.421Z"
+  }
+}

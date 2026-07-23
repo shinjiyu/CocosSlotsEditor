@@ -2,8 +2,8 @@
   "id": "power-of-thor2",
   "name": "Power of Thor 2",
   "zone": "spine-3.8",
-  "designW": 152,
-  "designH": 128,
+  "designW": 116,
+  "designH": 96,
   "symbols": [
     {
       "id": 1,
@@ -207,5 +207,28 @@
       "dir": "oriSymbols/symbolAKQJTE",
       "file": "symbolAKQJTE.json"
     }
-  ]
+  ],
+  "effects": [
+    {
+      "id": "fx_thor2_symbol_win",
+      "name": "symbol_win",
+      "dir": "effects/symbol_win",
+      "file": "symbol_win.json",
+      "defaultAnim": "play",
+      "front": false,
+      "role": "win"
+    },
+    {
+      "id": "fx_thor2_symbol_eliminate",
+      "name": "symbol_eliminate",
+      "dir": "effects/symbol_eliminate",
+      "file": "symbol_eliminate.json",
+      "defaultAnim": "play",
+      "front": true,
+      "role": "vanish"
+    }
+  ],
+  "boardColGap": 0,
+  "boardRowGap": 0,
+  "cellFxScale": 0.75
 }

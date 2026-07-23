@@ -49,6 +49,12 @@ const SYMBOLS = [
 
 const SPINE_DIRS = ['symbolB1', 'symbolB2', 'symbolF12345', 'symbolM1', 'symbolM2', 'symbolM3', 'symbolM4', 'symbolAKQJTE'];
 
+/** 格子特效：高亮 / 消除（harExplore 独立 skeleton，动画名均为 play） */
+const EFFECT_SPINES = [
+    { dir: 'symbol_win', id: 'fx_thor2_symbol_win', name: 'symbol_win', defaultAnim: 'play', front: false },
+    { dir: 'symbol_eliminate', id: 'fx_thor2_symbol_eliminate', name: 'symbol_eliminate', defaultAnim: 'play', front: true },
+];
+
 function ensureDir(p) {
     fs.mkdirSync(p, { recursive: true });
 }
@@ -125,13 +131,34 @@ function main() {
         copyFile(jsonSrc, path.join(dstDir, `${dir}.json`));
     }
 
+    // 高亮 / 消除特效（atlas 页为 light.jpg）
+    for (const fx of EFFECT_SPINES) {
+        const srcDir = path.join(HAR, fx.dir);
+        const dstDir = path.join(PACK, 'effects', fx.dir);
+        ensureDir(dstDir);
+        const jpgSrc = path.join(srcDir, 'light.jpg');
+        const atlasSrc = path.join(srcDir, 'skeleton.atlas');
+        const jsonSrc = path.join(srcDir, 'skeleton.json');
+        if (!fs.existsSync(jpgSrc) || !fs.existsSync(atlasSrc) || !fs.existsSync(jsonSrc)) {
+            throw new Error(`effect spine 不完整: ${srcDir}`);
+        }
+        const pageName = `${fx.dir}.jpg`;
+        copyFile(jpgSrc, path.join(dstDir, pageName));
+        const atlas = rewriteAtlasFirstPage(fs.readFileSync(atlasSrc, 'utf8'), pageName);
+        fs.writeFileSync(path.join(dstDir, `${fx.dir}.atlas`), atlas, 'utf8');
+        copyFile(jsonSrc, path.join(dstDir, `${fx.dir}.json`));
+    }
+
     // 清单：给 build 脚本用
     writeJson(path.join(PACK, 'manifest.json'), {
         id: 'power-of-thor2',
         name: 'Power of Thor 2',
         zone: 'spine-3.8',
-        designW: 152,
-        designH: 128,
+        designW: 116,
+        designH: 96,
+        boardColGap: 0,
+        boardRowGap: 0,
+        cellFxScale: 0.75,
         symbols: SYMBOLS.map((s) => ({
             id: s.id,
             name: s.name,
@@ -146,6 +173,15 @@ function main() {
             id: `spine_thor2_${d}`,
             dir: `oriSymbols/${d}`,
             file: `${d}.json`,
+        })),
+        effects: EFFECT_SPINES.map((fx) => ({
+            id: fx.id,
+            name: fx.name,
+            dir: `effects/${fx.dir}`,
+            file: `${fx.dir}.json`,
+            defaultAnim: fx.defaultAnim,
+            front: fx.front,
+            role: fx.dir === 'symbol_eliminate' ? 'vanish' : 'win',
         })),
     });
 
@@ -174,7 +210,9 @@ ${SYMBOLS.map((s) => `| ${s.id} | ${s.name} | ${s.spine} | ${s.winAnim} |`).join
     );
 
     console.log(`[import-power-of-thor2] pack → ${path.relative(ROOT, PACK)}`);
-    console.log(`[import-power-of-thor2] symbols=${SYMBOLS.length} spines=${SPINE_DIRS.length}`);
+    console.log(
+        `[import-power-of-thor2] symbols=${SYMBOLS.length} spines=${SPINE_DIRS.length} effects=${EFFECT_SPINES.length}`,
+    );
     console.log('下一步：Creator refresh 该目录，再跑 build-power-of-thor2-libraries.cjs');
 }
 

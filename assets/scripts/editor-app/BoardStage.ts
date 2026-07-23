@@ -1,12 +1,13 @@
 /**
- * BoardStage — 盘面挂载组件（编辑期可视化 + 运行时装配，一份配置两用）。
+ * BoardStage — 盘面挂载组件（编辑期可视化 + 运行时装配）。
  *
- * 用法：在业务 prefab/场景里建一个节点挂本组件，拖入
- *   - doc（symbolEditor 导出的盘面文档 JSON）
+ * 用法：业务 prefab/场景节点挂本组件，拖入
+ *   - doc（盘面 SPIR JSON）
  *   - symbolLibrary（symbol-library.prefab）
- * 编辑模式立即用 BoardView 渲染文档首帧（与运行时同一渲染路径），
- * 在 Inspector 上调 cellW/cellH/行距/列距 直接看大小范围。
- * 运行时调 buildRuntime() 获得 BoardDirector 播放整个文档。
+ *
+ * 格宽/格高/行列距默认跟随符号库（`syncFromLibrary`）。
+ * 符号库布局请在 H5「SymbolEditor → 包布局」配置（SymbolSheetDoc.packLayout），
+ * 不要用 Creator Inspector 改 SymbolLibrary；运行时吃 prefab 已序列化的字段。
  */
 
 import { _decorator, CCObject, Component, JsonAsset, Node, Prefab, RenderRoot2D } from 'cc';
@@ -48,16 +49,27 @@ export class BoardStage extends Component {
     })
     assetLibrary: Prefab | null = null;
 
-    @property({ displayName: '格宽(px)' })
+    @property({
+        displayName: '跟随符号库布局',
+        tooltip:
+            '开启后格宽/格高/列距/行距取自 SymbolLibrary（由 H5 packLayout / 包构建写入）。关闭才用下方手动值。',
+    })
+    syncFromLibrary = true;
+
+    /** @deprecated 请用 H5 包布局；仅 syncFromLibrary=false 时生效 */
+    @property({ visible: false })
     cellW = 126;
 
-    @property({ displayName: '格高(px)' })
+    /** @deprecated 请用 H5 包布局 */
+    @property({ visible: false })
     cellH = 104;
 
-    @property({ displayName: '列距(px)', tooltip: '支持负数' })
+    /** @deprecated 请用 H5 包布局 */
+    @property({ visible: false })
     colGap = 4;
 
-    @property({ displayName: '行距(px)', tooltip: '支持负数' })
+    /** @deprecated 请用 H5 包布局 */
+    @property({ visible: false })
     rowGap = 4;
 
     @property({ displayName: '格内填充比例', range: [0.1, 1.5, 0.05] })
@@ -117,12 +129,36 @@ export class BoardStage extends Component {
         return SymbolCatalog.fromLibrary(lib, this.assetLibraryComponent());
     }
 
+    private resolveLayout(catalog: SymbolCatalog): {
+        cellW: number;
+        cellH: number;
+        colGap: number;
+        rowGap: number;
+    } {
+        if (this.syncFromLibrary) {
+            const sp = catalog.boardSpacing;
+            return {
+                cellW: catalog.designW,
+                cellH: catalog.designH,
+                colGap: sp.colGap,
+                rowGap: sp.rowGap,
+            };
+        }
+        return {
+            cellW: this.cellW,
+            cellH: this.cellH,
+            colGap: this.colGap,
+            rowGap: this.rowGap,
+        };
+    }
+
     private attachBoardView(host: Node, catalog: SymbolCatalog): BoardView {
+        const layout = this.resolveLayout(catalog);
         const view = host.addComponent(BoardView);
-        view.cellW = this.cellW;
-        view.cellH = this.cellH;
-        view.colGap = this.colGap;
-        view.rowGap = this.rowGap;
+        view.cellW = layout.cellW;
+        view.cellH = layout.cellH;
+        view.colGap = layout.colGap;
+        view.rowGap = layout.rowGap;
         view.cellFill = this.cellFill;
         view.showGridBg = this.showGridBg;
         view.setCatalog(catalog);
@@ -162,11 +198,18 @@ export class BoardStage extends Component {
     }
 
     private signature(): string {
+        const lib = this.libraryComponent();
+        const sp = lib?.boardSpacing;
         return [
             this.doc?.uuid ?? '',
             this.symbolLibrary?.uuid ?? '',
             this.assetLibrary?.uuid ?? '',
-            this.cellW, this.cellH, this.colGap, this.rowGap, this.cellFill,
+            this.syncFromLibrary ? 1 : 0,
+            this.syncFromLibrary ? (lib?.designW ?? 0) : this.cellW,
+            this.syncFromLibrary ? (lib?.designH ?? 0) : this.cellH,
+            this.syncFromLibrary ? (sp?.colGap ?? 0) : this.colGap,
+            this.syncFromLibrary ? (sp?.rowGap ?? 0) : this.rowGap,
+            this.cellFill,
             this.showGridBg ? 1 : 0,
         ].join('|');
     }

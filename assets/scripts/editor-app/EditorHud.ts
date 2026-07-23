@@ -79,6 +79,8 @@ export interface HudCallbacks {
     onGenerateMultiCollectFrame(): void;
     /** 盘面列距/行距调整 */
     onAdjustGap(axis: 'col' | 'row', dir: 1 | -1): void;
+    /** 不等高列垂直对齐：顶 / 中 / 底 */
+    onCycleColumnVAlign(dir: 1 | -1): void;
     /** 切换游戏符号包（dir=±1 循环） */
     onCycleGame(dir: 1 | -1): void;
     /** 选中格为倍率球时调整 multiplier */
@@ -87,6 +89,8 @@ export interface HudCallbacks {
     onSetMultiplier(value: number): void;
     /** 调整指定列（或当前选中列）的符号个数 */
     onAdjustColumnRows(dir: 1 | -1, col?: number): void;
+    /** 增减盘面列数（从右侧） */
+    onAdjustBoardCols(dir: 1 | -1): void;
     /** 点选「列符号数」里的某一列 */
     onPickColumn(col: number): void;
     /** 跳转 H5 符号编辑器 */
@@ -121,6 +125,7 @@ export class EditorHud extends Component {
     private animSectionTop = 0;
     private colGapLabel: Label | null = null;
     private rowGapLabel: Label | null = null;
+    private columnVAlignLabelNode: Label | null = null;
     private sizeInfoLabel: Label | null = null;
     private gameLabel: Label | null = null;
     private brushRoot: Node | null = null;
@@ -140,14 +145,19 @@ export class EditorHud extends Component {
     private multiEditSilent = false;
     private columnRowsRow: Node | null = null;
     private columnRowsLabel: Label | null = null;
+    private boardColsRow: Node | null = null;
+    private boardColsLabel: Label | null = null;
     private columnOccupancyRoot: Node | null = null;
     private columnOccupancyLabels: Label[] = [];
+    private columnOccupancyParent: Node | null = null;
+    private columnOccupancyY = 0;
     private brushTierLabel: Label | null = null;
     private brushTierRow: Node | null = null;
-    /** 吕布变数列 UI（列符号数 + 刷子档）；赛特等固定盘面关闭 */
+    /** 变数列 UI（列格数）；tallSymbolTiers 另开刷子档（吕布） */
     private variableColumnBlock: Node | null = null;
     private brushSectionTitleLabel: Label | null = null;
     private variableColumnsEnabled = false;
+    private tallSymbolTiersEnabled = false;
 
     /** 盘面区中心（给 Main 摆 BoardView 用） */
     static readonly BOARD_CENTER = new Vec3(boardAreaRect().cx, boardAreaRect().cy, 0);
@@ -156,23 +166,27 @@ export class EditorHud extends Component {
         callbacks: HudCallbacks,
         catalog: SymbolCatalog,
         gameLabel = '',
-        opts?: { variableColumns?: boolean },
+        opts?: { variableColumns?: boolean; tallSymbolTiers?: boolean },
     ): void {
         this.callbacks = callbacks;
         this.variableColumnsEnabled = !!opts?.variableColumns;
+        this.tallSymbolTiersEnabled = !!opts?.tallSymbolTiers;
         this.buildToolbar();
         this.buildFrameNav();
         this.buildInspector(catalog, gameLabel);
     }
 
     /**
-     * 变数列盘面（吕布）才显示「列符号数 / 刷子大小」。
-     * 固定盘面（赛特）关闭，避免误调列高。
+     * 变数列盘面显示「列格数」；tallSymbolTiers（吕布）才显示刷子档。
      */
-    setVariableColumnUi(enabled: boolean): void {
+    setVariableColumnUi(enabled: boolean, tallSymbolTiers?: boolean): void {
         this.variableColumnsEnabled = enabled;
+        if (tallSymbolTiers !== undefined) this.tallSymbolTiersEnabled = tallSymbolTiers;
         if (this.variableColumnBlock?.isValid) {
             this.variableColumnBlock.active = enabled;
+        }
+        if (this.brushTierRow?.isValid) {
+            this.brushTierRow.active = enabled && this.tallSymbolTiersEnabled;
         }
         if (this.brushSectionTitleLabel) {
             this.brushSectionTitleLabel.string = enabled
@@ -181,7 +195,11 @@ export class EditorHud extends Component {
         }
         if (!enabled) {
             if (this.columnRowsRow) this.columnRowsRow.active = false;
+            if (this.boardColsRow) this.boardColsRow.active = false;
             if (this.brushTierRow) this.brushTierRow.active = false;
+        } else {
+            if (this.boardColsRow) this.boardColsRow.active = true;
+            if (this.columnRowsRow) this.columnRowsRow.active = true;
         }
     }
 
@@ -242,9 +260,16 @@ export class EditorHud extends Component {
         }
     }
 
-    /** 刷新六列符号数显示；activeCol 高亮 */
+    /** 刷新列符号数显示（列数可变）；activeCol 高亮 */
     setColumnOccupancy(rows: readonly number[], activeCol: number | null = null): void {
         if (!this.variableColumnsEnabled) return;
+        const cols = rows.length;
+        if (this.boardColsLabel) {
+            this.boardColsLabel.string = `${cols} 列`;
+        }
+        if (this.columnOccupancyLabels.length !== cols) {
+            this.rebuildColumnOccupancyGrid(cols);
+        }
         for (let c = 0; c < this.columnOccupancyLabels.length; c++) {
             const lab = this.columnOccupancyLabels[c];
             if (!lab) continue;
@@ -308,6 +333,7 @@ export class EditorHud extends Component {
         colGap: number,
         rowGap: number,
         locks?: { lockCol?: boolean; lockRow?: boolean },
+        columnVAlignLabel?: string,
     ): void {
         if (this.colGapLabel) {
             this.colGapLabel.string = locks?.lockCol ? `${colGap}·锁` : String(colGap);
@@ -320,6 +346,9 @@ export class EditorHud extends Component {
             this.rowGapLabel.color = locks?.lockRow
                 ? new Color(160, 170, 190, 255)
                 : new Color(240, 244, 255, 255);
+        }
+        if (this.columnVAlignLabelNode && columnVAlignLabel != null) {
+            this.columnVAlignLabelNode.string = columnVAlignLabel;
         }
     }
 
@@ -448,7 +477,7 @@ export class EditorHud extends Component {
         // — 选中格倍率（仅 multi 球显示）—
         cursorY = this.buildMultiplierRow(content, cursorY);
 
-        // — 列符号数 / 刷子档（仅变数列盘面；赛特等固定盘不建，避免空占位）—
+        // — 列格数（不等高 ways）；刷子档仅 tallSymbolTiers —
         if (this.variableColumnsEnabled) {
             const block = new Node('VariableColumnUi');
             block.addComponent(UITransform);
@@ -456,9 +485,15 @@ export class EditorHud extends Component {
             content.addChild(block);
             this.variableColumnBlock = block;
             let by = cursorY;
-            by = this.addSectionTitle(block, '列符号数（2~7）', by);
+            by = this.addSectionTitle(
+                block,
+                this.tallSymbolTiersEnabled ? '列符号数（2~7）' : '列格数（不等高）',
+                by,
+            );
             by = this.buildColumnOccupancyBlock(block, by);
-            by = this.buildBrushTierRow(block, by);
+            if (this.tallSymbolTiersEnabled) {
+                by = this.buildBrushTierRow(block, by);
+            }
             cursorY = by;
         } else {
             this.variableColumnBlock = null;
@@ -468,7 +503,7 @@ export class EditorHud extends Component {
         cursorY = this.addSectionTitle(content, '游戏包 (gameId)', cursorY);
         cursorY = this.buildGameRow(content, cursorY, gameLabel);
 
-        // — 盘面间距（列距 / 行距，一行两组） —
+        // — 盘面间距 + 列对齐 —
         cursorY = this.buildGapRow(content, cursorY);
 
         // — 尺寸信息（格子 / 当前 symbol 实际渲染尺寸） —
@@ -564,9 +599,53 @@ export class EditorHud extends Component {
         return y - 44;
     }
 
-    /** 选中列摘要 + 六列常显符号数 */
+    /** 选中列摘要 + 列数 + 各列常显符号数 */
     private buildColumnOccupancyBlock(panel: Node, y: number): number {
         const cb = this.callbacks!;
+
+        // 列数 − / 值 / ＋
+        const colsRow = new Node('board_cols_row');
+        colsRow.addComponent(UITransform);
+        colsRow.setPosition(0, y, 0);
+        const colsTitle = new Node('board_cols_title');
+        colsTitle.addComponent(UITransform).setAnchorPoint(0, 0.5);
+        const ctl = colsTitle.addComponent(Label);
+        ctl.string = '列数';
+        ctl.fontSize = 15;
+        ctl.lineHeight = 18;
+        ctl.color = new Color(170, 185, 235, 255);
+        colsTitle.setPosition(-PANEL_W / 2 + 16, 0, 0);
+        colsRow.addChild(colsTitle);
+        {
+            const left = -PANEL_W / 2 + 90;
+            const btnW = 40;
+            const valueW = 90;
+            const gap = 6;
+            const minusX = left + btnW / 2;
+            const valueX = minusX + btnW / 2 + gap + valueW / 2;
+            const plusX = valueX + valueW / 2 + gap + btnW / 2;
+            colsRow.addChild(
+                this.makeButton('−', () => cb.onAdjustBoardCols(-1), new Vec3(minusX, 0, 0), btnW),
+            );
+            colsRow.addChild(
+                this.makeButton('＋', () => cb.onAdjustBoardCols(1), new Vec3(plusX, 0, 0), btnW),
+            );
+            const vn = new Node('board_cols_val');
+            vn.addComponent(UITransform).setContentSize(valueW, BTN_H);
+            const vl = vn.addComponent(Label);
+            vl.string = '6 列';
+            vl.fontSize = 16;
+            vl.lineHeight = 18;
+            vl.horizontalAlign = Label.HorizontalAlign.CENTER;
+            vl.verticalAlign = Label.VerticalAlign.CENTER;
+            vl.color = new Color(255, 220, 120, 255);
+            vn.setPosition(valueX, 0, 0);
+            colsRow.addChild(vn);
+            this.boardColsLabel = vl;
+        }
+        panel.addChild(colsRow);
+        this.boardColsRow = colsRow;
+        y -= 40;
 
         // 选中列 − / 值 / ＋
         const row = new Node('col_rows_row');
@@ -612,19 +691,38 @@ export class EditorHud extends Component {
         this.columnRowsRow = row;
         y -= 40;
 
-        // 六列速调（点列头选中；列内 −/+ 直接改该列符号数）
+        this.columnOccupancyParent = panel;
+        this.columnOccupancyY = y;
+        this.rebuildColumnOccupancyGrid(6);
+        // 预留最多 2 行列头（≤12 列），避免增列后盖住下方游戏包区
+        return y - 64 - 62;
+    }
+
+    /** 按当前列数重建 C0..Cn 速调格子（可换行） */
+    private rebuildColumnOccupancyGrid(cols: number): void {
+        const cb = this.callbacks;
+        const parent = this.columnOccupancyParent;
+        if (!cb || !parent?.isValid) return;
+        if (this.columnOccupancyRoot?.isValid) {
+            this.columnOccupancyRoot.destroy();
+        }
+        const nCols = Math.max(1, Math.min(12, Math.trunc(cols) || 1));
         const grid = new Node('col_occ_grid');
         grid.addComponent(UITransform);
-        grid.setPosition(0, y, 0);
+        grid.setPosition(0, this.columnOccupancyY, 0);
         this.columnOccupancyRoot = grid;
         this.columnOccupancyLabels = [];
-        const cellW = 50;
+        const cellW = nCols > 6 ? 44 : 50;
+        const gap = 4;
+        const perRow = Math.min(6, nCols);
         const startX = -PANEL_W / 2 + 22 + cellW / 2;
-        for (let c = 0; c < 6; c++) {
+        for (let c = 0; c < nCols; c++) {
             const col = c;
+            const row = Math.floor(c / perRow);
+            const idx = c % perRow;
             const n = new Node(`occ_${c}`);
             n.addComponent(UITransform).setContentSize(cellW, 56);
-            n.setPosition(startX + c * (cellW + 4), 0, 0);
+            n.setPosition(startX + idx * (cellW + gap), -row * 62, 0);
             const g = n.addComponent(Graphics);
             g.fillColor = new Color(32, 40, 68, 255);
             g.roundRect(-cellW / 2, -28, cellW, 56, 6);
@@ -642,23 +740,30 @@ export class EditorHud extends Component {
             const val = new Node('v');
             val.addComponent(UITransform);
             const vl2 = val.addComponent(Label);
-            vl2.string = '7';
+            vl2.string = '-';
             vl2.fontSize = 16;
             vl2.color = new Color(230, 235, 255, 255);
             val.setPosition(0, 2, 0);
             n.addChild(val);
             this.columnOccupancyLabels.push(vl2);
 
-            const minus = this.makeCompactButton('−', () => cb.onAdjustColumnRows(-1, col), new Vec3(-12, -18, 0));
-            const plus = this.makeCompactButton('＋', () => cb.onAdjustColumnRows(1, col), new Vec3(12, -18, 0));
+            const minus = this.makeCompactButton(
+                '−',
+                () => cb.onAdjustColumnRows(-1, col),
+                new Vec3(-12, -18, 0),
+            );
+            const plus = this.makeCompactButton(
+                '＋',
+                () => cb.onAdjustColumnRows(1, col),
+                new Vec3(12, -18, 0),
+            );
             n.addChild(minus);
             n.addChild(plus);
 
             n.on(Node.EventType.TOUCH_END, () => cb.onPickColumn(col));
             grid.addChild(n);
         }
-        panel.addChild(grid);
-        return y - 64;
+        parent.addChild(grid);
     }
 
     /** 刷子大小档（跟列 / tier-1..6） */
@@ -876,7 +981,7 @@ export class EditorHud extends Component {
         return n;
     }
 
-    /** 一行放两组「标签 值 − ＋」：列距 与 行距 */
+    /** 一行：列距 / 行距；下一行：列对齐（顶/中/底） */
     private buildGapRow(panel: Node, y: number): number {
         const cb = this.callbacks!;
         const left = -PANEL_W / 2 + 20;
@@ -915,6 +1020,30 @@ export class EditorHud extends Component {
 
         this.colGapLabel = addCluster('列距', left, 'col');
         this.rowGapLabel = addCluster('行距', left + 160, 'row');
+        y -= 36;
+
+        const alignTitle = new Node('valign_t');
+        alignTitle.addComponent(UITransform).setAnchorPoint(0, 0.5);
+        const atl = alignTitle.addComponent(Label);
+        atl.string = '列对齐';
+        atl.fontSize = 16;
+        atl.color = new Color(170, 185, 235, 255);
+        alignTitle.setPosition(left, y, 0);
+        panel.addChild(alignTitle);
+
+        const alignVal = new Node('valign_v');
+        alignVal.addComponent(UITransform).setContentSize(100, 28);
+        const avl = alignVal.addComponent(Label);
+        avl.string = '顶对齐';
+        avl.fontSize = 16;
+        avl.horizontalAlign = Label.HorizontalAlign.CENTER;
+        avl.color = new Color(255, 230, 150, 255);
+        alignVal.setPosition(left + 120, y, 0);
+        panel.addChild(alignVal);
+        this.columnVAlignLabelNode = avl;
+
+        panel.addChild(this.makeMiniButton('◀', () => cb.onCycleColumnVAlign(-1), new Vec3(left + 200, y, 0)));
+        panel.addChild(this.makeMiniButton('▶', () => cb.onCycleColumnVAlign(1), new Vec3(left + 236, y, 0)));
         return y - 40;
     }
 

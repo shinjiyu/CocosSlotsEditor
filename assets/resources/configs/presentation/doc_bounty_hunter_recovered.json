@@ -1,0 +1,290 @@
+{
+  "docVersion": 1,
+  "id": "doc_bounty_hunter_recovered",
+  "name": "Bounty Hunter 还原盘面对照",
+  "states": [
+    {
+      "version": "0.2.0",
+      "sessionId": "doc_bounty_hunter_recovered",
+      "board": {
+        "topology": {
+          "cols": 6,
+          "visibleRows": [
+            3,
+            4,
+            5,
+            5,
+            4,
+            3
+          ],
+          "extraTop": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "extraBottom": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "display": [
+          [
+            {
+              "symbolId": 3,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 6,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 5,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 4,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 9,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 6,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            }
+          ]
+        ],
+        "resolved": [
+          [
+            {
+              "symbolId": 3,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 6,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 5,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 4,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 12,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 3,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 10,
+              "entityRef": null
+            },
+            {
+              "symbolId": 9,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 6,
+              "entityRef": null
+            }
+          ],
+          [
+            {
+              "symbolId": 5,
+              "entityRef": null
+            },
+            {
+              "symbolId": 11,
+              "entityRef": null
+            },
+            {
+              "symbolId": 10,
+              "entityRef": null
+            }
+          ]
+        ],
+        "entities": {},
+        "anchors": {
+          "locks": {
+            "$set": []
+          },
+          "sticks": {
+            "$set": []
+          }
+        },
+        "overlays": [],
+        "wins": []
+      },
+      "phase": "idle",
+      "sessionContext": {
+        "mode": "ng"
+      },
+      "totalWinDisplay": 0,
+      "extensions": {
+        "frame": {
+          "cascadeIndex": 0,
+          "frameIndex": 0,
+          "frameKind": "enter-table"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "source": "BountyHunterRecovered/bountyhunter_recovered.scene",
+    "note": "ways [3,4,5,5,4,3]；中心距 120×120 / design 120×100 gap 0/20；符号 id=pack bounty-hunter",
+    "colPitch": 120,
+    "rowPitch": 120,
+    "extractedAt": "2026-07-23T07:40:35.558Z"
+  }
+}

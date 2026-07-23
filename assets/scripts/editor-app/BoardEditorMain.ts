@@ -20,6 +20,7 @@ import {
     SetResolvedCellCommand,
     SetEntityMultiplierCommand,
     SetColumnVisibleRowsCommand,
+    SetBoardColsCommand,
     SetTopStripCellCommand,
     PatchFrameExtCommand,
     CompositeCommand,
@@ -28,6 +29,14 @@ import {
 import type { EditorDoc, EditorCommand, IrFrameKind } from '../editor-core/index';
 import type { PresentationState } from '../vendor/slot-presentation-ir/index';
 import { SymbolCatalog, loadRes } from './SymbolCatalog';
+import {
+    draftFromEntry,
+    loadSymbolSheetDoc,
+    normalizePackLayout,
+    saveSymbolSheetDoc,
+    COLUMN_VALIGN_CYCLE,
+    columnVAlignLabel,
+} from './SymbolDraft';
 import { BoardView } from './BoardView';
 import type { TopStripReelHost } from './BoardView';
 import { EditorHud, boardAreaRect } from './EditorHud';
@@ -143,18 +152,35 @@ export class BoardEditorMain extends Component {
             this.applyDocBindingForPack(this.gamePack.id);
             console.log(`[BoardEditorMain] spine zone=${zone} pack=${this.gamePack.id}`);
             await this.catalog.loadPack(this.gamePack);
-            this.doc = this.persistence.loadAutosave(this.docId);
+            console.log(
+                `[BoardEditorMain] design=${this.catalog.designW}x${this.catalog.designH} gaps=${JSON.stringify(this.catalog.boardSpacing)}`,
+            );
+            this.applyLocalSymbolSheet();
+            // 包专属种子：一律忽略浏览器自动存档（否则会一直停在旧 doc_example 的 1/4 帧）
+            const forceSeed =
+                this.gamePack.id === 'power-of-thor2' || this.gamePack.id === 'lvbu';
             let source = 'localStorage 自动存档';
-            if (!this.doc) {
-                this.doc = await this.loadSeedDoc();
-                source = this.doc ? 'resources/seed' : 'resources';
-            } else if (!this.docMatchesPack(this.doc, this.gamePack.id)) {
-                console.warn(
-                    `[BoardEditorMain] autosave ${this.docId} 与 pack=${this.gamePack.id} 拓扑不匹配，改用种子文档`,
-                );
+            if (forceSeed) {
+                this.migrateSeedAutosave();
                 this.persistence.clearAutosave(this.docId);
+                this.persistence.clearAutosave('doc_example');
                 this.doc = await this.loadSeedDoc();
-                source = 'resources/seed(replaced-autosave)';
+                source = `resources/seed(forced:${this.docId})`;
+            } else {
+                this.migrateSeedAutosave();
+                this.doc = this.persistence.loadAutosave(this.docId);
+                if (!this.doc) {
+                    this.doc = await this.loadSeedDoc();
+                    source = this.doc ? 'resources/seed' : 'resources';
+                } else if (!this.docMatchesPack(this.doc, this.gamePack.id) || this.doc.id !== this.docId) {
+                    console.warn(
+                        `[BoardEditorMain] autosave id=${this.doc.id} 与目标 docId=${this.docId}/pack=${this.gamePack.id} 不匹配，改用种子文档`,
+                    );
+                    this.persistence.clearAutosave(this.docId);
+                    this.persistence.clearAutosave(this.doc.id);
+                    this.doc = await this.loadSeedDoc();
+                    source = 'resources/seed(replaced-autosave)';
+                }
             }
             const issues = validateDoc(this.doc);
             if (issues.length) {
@@ -166,22 +192,73 @@ export class BoardEditorMain extends Component {
             this.buildLayout();
             this.showState(0);
             this.installAiwsBridge();
-            console.log(
-                `[BoardEditorMain] ready, game=${this.gamePack.id}, states=${this.doc.states.length}, source=${source}, layout=${WAYS_6X7_TOP_MID4.id}`,
+            const probe = {
+                pack: this.gamePack.id,
+                docId: this.doc.id,
+                docPath: this.docPath,
+                frames: this.doc.states.length,
+                source,
+                designW: this.catalog.designW,
+                designH: this.catalog.designH,
+                cellW: this.boardView?.cellW,
+                cellH: this.boardView?.cellH,
+                gaps: this.catalog.boardSpacing,
+            };
+            (globalThis as { __BOARD_PROBE__?: typeof probe }).__BOARD_PROBE__ = probe;
+            this.hud?.setStatus(
+                `${this.gamePack.id} · ${this.doc.id} · ${this.doc.states.length}帧 · 格${this.catalog.designW}×${this.catalog.designH}`,
             );
+            console.log('[BoardEditorMain] ready', probe);
         } catch (e) {
             console.error('[BoardEditorMain] load failed', e);
         }
     }
 
-    /** 按符号包绑定默认文档 id / resources 路径 */
+    /** 按符号包登记表绑定默认种子盘面（可自由配置，勿再写死 if packId） */
     private applyDocBindingForPack(packId: string): void {
-        if (packId === 'lvbu') {
-            this.docId = 'doc_lvbu_ways67';
-            this.docPath = 'configs/presentation/doc_lvbu_ways67';
-        } else {
-            this.docId = 'doc_example';
-            this.docPath = 'configs/presentation/doc_example';
+        const pack = getGamePack(packId);
+        this.docId = pack.seedDocId || 'doc_example';
+        this.docPath = pack.seedDocPath || 'configs/presentation/doc_example';
+    }
+
+    /** SymbolEditor「→盘面」：叠加 localStorage 符号草稿（含 packLayout），立刻吃到布局/素材改动 */
+    private applyLocalSymbolSheet(): void {
+        if (!this.gamePack) return;
+        let sheet = loadSymbolSheetDoc(this.gamePack.id);
+        if (!sheet) {
+            const base = this.catalog.readPackLayout();
+            sheet = {
+                docVersion: 1,
+                packId: this.gamePack.id,
+                zone: getActiveSpineZoneSync(),
+                symbols: this.catalog.getSourceEntries().map((e) => draftFromEntry(e)),
+                packLayout: normalizePackLayout({
+                    ...base,
+                    ...(this.gamePack.id === 'bounty-hunter' ? { columnVAlign: 'center' as const } : {}),
+                }),
+                winCellFxAssetId: this.catalog.packWinCellFxAssetId(),
+                vanishCellFxAssetId: this.catalog.packVanishCellFxAssetId(),
+                updatedAt: new Date().toISOString(),
+            };
+            saveSymbolSheetDoc(sheet);
+        } else if (!sheet.packLayout) {
+            sheet = {
+                ...sheet,
+                packLayout: normalizePackLayout({
+                    ...this.catalog.readPackLayout(),
+                    ...(this.gamePack.id === 'bounty-hunter' ? { columnVAlign: 'center' as const } : {}),
+                }),
+                updatedAt: new Date().toISOString(),
+            };
+            saveSymbolSheetDoc(sheet);
+        }
+        if (this.catalog.applySymbolSheet(sheet)) {
+            console.log(
+                `[BoardEditorMain] symbol sheet overlay pack=${sheet.packId} symbols=${sheet.symbols.length} layout=${JSON.stringify(sheet.packLayout)}`,
+            );
+        }
+        if (this.boardView && sheet.packLayout) {
+            this.boardView.setColumnVAlign(sheet.packLayout.columnVAlign);
         }
     }
 
@@ -258,6 +335,34 @@ export class BoardEditorMain extends Component {
     // ------------------------------------------------------------------
 
     private static readonly GAP_STORE_KEY = 'symbolEditor.boardGaps';
+
+    /**
+     * 浏览器会把旧盘面写进 localStorage（symbolEditor.doc.*）。
+     * 种子升版或切到包专属 doc 时清掉，避免继续显示「帧 1/4」的 doc_example。
+     */
+    private migrateSeedAutosave(): void {
+        const rev = this.gamePack?.seedRev ?? null;
+        if (rev == null) return;
+        const key = `symbolEditor.seedRev.${this.docId}`;
+        try {
+            const cur = localStorage.getItem(key);
+            if (cur === String(rev)) return;
+            this.persistence.clearAutosave(this.docId);
+            this.persistence.clearAutosave('doc_example');
+            // 扫掉其它残留盘面存档，避免旧 4 帧继续冒出来
+            this.persistence.clearAllDocAutosaves();
+            try {
+                localStorage.setItem(key, String(rev));
+            } catch {
+                /* ignore */
+            }
+            console.log(
+                `[BoardEditorMain] seedRev ${this.docId}=${rev} → cleared all doc autosaves (was ${cur ?? 'none'})`,
+            );
+        } catch (e) {
+            console.warn('[BoardEditorMain] migrateSeedAutosave failed', e);
+        }
+    }
 
     private buildLayout(): void {
         const area = boardAreaRect();
@@ -361,21 +466,23 @@ export class BoardEditorMain extends Component {
                 onGenerateTopStepFrame: () => this.generateTopStepFrame(),
                 onGenerateMultiCollectFrame: () => this.generateMultiCollectFrame(),
                 onAdjustGap: (axis, dir) => this.adjustGap(axis, dir),
+                onCycleColumnVAlign: (dir) => this.cycleColumnVAlign(dir),
                 onCycleGame: (dir) => void this.cycleGame(dir),
                 onAdjustMultiplier: (dir) => this.adjustMultiplier(dir),
                 onSetMultiplier: (value) => this.setMultiplierValue(value),
                 onAdjustColumnRows: (dir, col) => this.adjustColumnRows(dir, col),
+                onAdjustBoardCols: (dir) => this.adjustBoardCols(dir),
                 onPickColumn: (col) => this.pickColumn(col),
                 onOpenSymbolEditor: () => this.openSymbolEditor(),
             },
             this.catalog,
             this.formatGameLabel(this.gamePack),
-            { variableColumns: this.gamePack?.id === 'lvbu' },
+            {
+                variableColumns: !!this.gamePack?.variableColumns,
+                tallSymbolTiers: !!this.gamePack?.tallSymbolTiers,
+            },
         );
-        this.hud.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
-            lockCol: !!this.layoutSpacing()?.lockColGap,
-            lockRow: !!this.layoutSpacing()?.lockRowGap,
-        });
+        this.refreshGapHud();
         this.refreshBrushTierHud();
         this.refreshSizeInfo(null);
     }
@@ -805,16 +912,16 @@ export class BoardEditorMain extends Component {
 
     private refreshOccupancyHud(): void {
         if (!this.doc || !this.hud) return;
-        if (this.gamePack?.id !== 'lvbu') {
-            this.hud.setColumnRowsEditor(null);
-            return;
-        }
         const rows = this.doc.states[this.currentIndex].board.topology.visibleRows;
         this.hud.setColumnOccupancy(rows, this.selectedCol);
         if (this.selectedCol !== null) {
             const n = rows[this.selectedCol] ?? 0;
-            const tier = columnCountToTier(n);
-            this.hud.setColumnRowsEditor(n, tier != null ? tierKey(tier) : '');
+            if (this.gamePack?.id === 'lvbu') {
+                const tier = columnCountToTier(n);
+                this.hud.setColumnRowsEditor(n, tier != null ? tierKey(tier) : '');
+            } else {
+                this.hud.setColumnRowsEditor(n, '');
+            }
         } else {
             this.hud.setColumnRowsEditor(null);
         }
@@ -893,9 +1000,41 @@ export class BoardEditorMain extends Component {
         this.switchingGame = true;
         this.hud?.setStatus(`切换游戏包 → ${next.id} …`);
         try {
-            await this.catalog.load(next.libraryPath);
+            // 先落盘当前包编辑（含列格数），否则切走就丢
+            if (this.doc) this.persistence.autosave(this.doc);
+
+            await this.catalog.loadPack(next);
             this.gamePack = next;
             storeGameId(next.id);
+            this.applyDocBindingForPack(next.id);
+            this.applyLocalSymbolSheet();
+
+            // 优先恢复该包 autosave；没有再读种子（不再 clear，避免把刚存的冲掉）
+            this.migrateSeedAutosave();
+            let source = 'localStorage 自动存档';
+            let loaded = this.persistence.loadAutosave(this.docId);
+            if (!loaded) {
+                loaded = await this.loadSeedDoc();
+                source = 'resources/seed';
+            } else if (!this.docMatchesPack(loaded, next.id) || loaded.id !== this.docId) {
+                console.warn(
+                    `[BoardEditorMain] switch autosave id=${loaded.id} 与目标 docId=${this.docId}/pack=${next.id} 不匹配，改用种子`,
+                );
+                this.persistence.clearAutosave(this.docId);
+                this.persistence.clearAutosave(loaded.id);
+                loaded = await this.loadSeedDoc();
+                source = 'resources/seed(replaced-autosave)';
+            }
+            const issues = validateDoc(loaded);
+            if (issues.length) {
+                console.error('[BoardEditorMain] switch validateDoc', issues);
+                loaded = await this.loadSeedDoc();
+                source = 'resources/seed(after-invalid-autosave)';
+            }
+            this.doc = loaded;
+            this.history = new CommandHistory(this.doc);
+            console.log(`[BoardEditorMain] switch doc source=${source} frames=${this.doc.states.length}`);
+
             if (this.boardView) {
                 this.boardView.setCatalog(this.catalog);
                 this.boardView.cellW = this.catalog.designW;
@@ -903,25 +1042,24 @@ export class BoardEditorMain extends Component {
                 this.boardView.setTopStripMap(null);
                 this.boardView.setLayoutProfile(next.id === 'lvbu' ? WAYS_6X7_TOP_MID4 : null);
                 this.applyLayoutSpacingDefaults();
+                this.restoreGaps();
                 this.enforceLockedGaps();
-                this.hud?.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
-                    lockCol: !!this.layoutSpacing()?.lockColGap,
-                    lockRow: !!this.layoutSpacing()?.lockRowGap,
-                });
+                this.refreshGapHud();
             }
             this.buildTopStripScaffold();
             this.brush = undefined;
             this.brushKey = undefined;
             this.brushTier = null;
-            this.hud?.setVariableColumnUi(next.id === 'lvbu');
+            this.hud?.setVariableColumnUi(!!next.variableColumns, !!next.tallSymbolTiers);
             this.hud?.setGameInfo(this.formatGameLabel(next));
             this.hud?.rebuildBrushes(this.catalog);
             this.hud?.setBrushHighlight(undefined);
             this.refreshBrushTierHud();
             this.clearSelection();
             this.boardView?.invalidateLayout();
-            this.showState(this.currentIndex);
-            this.hud?.setStatus(`游戏包：${next.id}`);
+            this.showState(0);
+            this.refreshOccupancyHud();
+            this.hud?.setStatus(`游戏包：${next.id} · ${this.doc?.states.length ?? 0} 帧`);
             console.log(`[BoardEditorMain] game pack → ${next.id} (${next.libraryPath})`);
         } catch (e) {
             console.error('[BoardEditorMain] switch game failed', e);
@@ -936,22 +1074,37 @@ export class BoardEditorMain extends Component {
     // ------------------------------------------------------------------
 
     private layoutSpacing() {
-        return this.gamePack?.id === 'lvbu' ? WAYS_6X7_TOP_MID4.spacing : undefined;
+        // 吕布仍走专用 profile；其它包读 H5 packLayout → SymbolCatalog.boardSpacing
+        if (this.gamePack?.id === 'lvbu') return WAYS_6X7_TOP_MID4.spacing;
+        return this.catalog.boardSpacing;
     }
 
     private applyLayoutSpacingDefaults(): void {
         if (!this.boardView) return;
         const spacing = this.layoutSpacing();
-        if (!spacing) {
-            this.boardView.colGap = 2;
-            this.boardView.rowGap = 2;
-            return;
-        }
         this.boardView.colGap = spacing.colGap;
         this.boardView.rowGap = spacing.rowGap;
+        this.boardView.setColumnVAlign(
+            (spacing as { columnVAlign?: string }).columnVAlign ??
+                this.catalog.readPackLayout().columnVAlign,
+        );
     }
 
-    /** 吕布：强制列距/行距回 profile（忽略本地存档与误调） */
+    private refreshGapHud(): void {
+        if (!this.boardView || !this.hud) return;
+        const spacing = this.layoutSpacing();
+        this.hud.setGapInfo(
+            this.boardView.colGap,
+            this.boardView.rowGap,
+            {
+                lockCol: !!spacing?.lockColGap,
+                lockRow: !!spacing?.lockRowGap,
+            },
+            columnVAlignLabel(this.boardView.getColumnVAlign()),
+        );
+    }
+
+    /** 吕布 / 包锁定轴：强制回包设定（忽略误调） */
     private enforceLockedGaps(): void {
         const spacing = this.layoutSpacing();
         if (!this.boardView || !spacing) return;
@@ -959,24 +1112,64 @@ export class BoardEditorMain extends Component {
         if (spacing.lockRowGap) this.boardView.rowGap = spacing.rowGap;
     }
 
+    /**
+     * 间距以 SymbolSheetDoc.packLayout 为准（H5 唯一配置）。
+     * 旧 boardGaps.* 本地存档仅作一次性迁移后清除。
+     */
     private restoreGaps(): void {
         if (!this.boardView) return;
+        const spacing = this.layoutSpacing();
+        // 清掉旧版无 pack 后缀 + 本包 gap 存档（已迁入 packLayout）
         try {
-            const raw = localStorage.getItem(BoardEditorMain.GAP_STORE_KEY);
-            if (!raw) return;
-            const v = JSON.parse(raw) as { col?: number; row?: number };
-            const spacing = this.layoutSpacing();
-            // 锁定轴忽略本地存档，避免以前调成 2 又带回来
-            if (typeof v.col === 'number' && !spacing?.lockColGap) {
-                this.boardView.colGap = v.col;
-            }
-            if (typeof v.row === 'number' && !spacing?.lockRowGap) {
-                this.boardView.rowGap = v.row;
-            }
+            localStorage.removeItem(BoardEditorMain.GAP_STORE_KEY);
+            localStorage.removeItem(this.gapStoreKey());
         } catch {
-            /* 存档损坏则用默认值 */
+            /* ignore */
         }
+        this.boardView.colGap = spacing.colGap;
+        this.boardView.rowGap = spacing.rowGap;
         this.enforceLockedGaps();
+    }
+
+    private gapStoreKey(): string {
+        return `${BoardEditorMain.GAP_STORE_KEY}.${this.gamePack?.id ?? 'default'}`;
+    }
+
+    /** 把当前 BoardView 间距写回 H5 symbol-sheet.packLayout */
+    private persistGapsToSymbolSheet(): void {
+        if (!this.gamePack || !this.boardView) return;
+        if (this.gamePack.id === 'lvbu') return; // 吕布用 profile，不写 sheet
+        let sheet = loadSymbolSheetDoc(this.gamePack.id);
+        const layout = normalizePackLayout({
+            ...(sheet?.packLayout ?? this.catalog.readPackLayout()),
+            boardColGap: this.boardView.colGap,
+            boardRowGap: this.boardView.rowGap,
+            columnVAlign: this.boardView.getColumnVAlign(),
+        });
+        if (!sheet) {
+            sheet = {
+                docVersion: 1,
+                packId: this.gamePack.id,
+                zone: getActiveSpineZoneSync(),
+                symbols: this.catalog.getSourceEntries().map((e) => draftFromEntry(e)),
+                packLayout: layout,
+                winCellFxAssetId: this.catalog.packWinCellFxAssetId(),
+                vanishCellFxAssetId: this.catalog.packVanishCellFxAssetId(),
+                updatedAt: new Date().toISOString(),
+            };
+        } else {
+            sheet = {
+                ...sheet,
+                packLayout: {
+                    ...layout,
+                    lockBoardColGap: sheet.packLayout?.lockBoardColGap ?? layout.lockBoardColGap,
+                    lockBoardRowGap: sheet.packLayout?.lockBoardRowGap ?? layout.lockBoardRowGap,
+                },
+                updatedAt: new Date().toISOString(),
+            };
+        }
+        saveSymbolSheetDoc(sheet);
+        this.catalog.applyPackLayout(sheet.packLayout);
     }
 
     private adjustGap(axis: 'col' | 'row', dir: 1 | -1): void {
@@ -985,45 +1178,41 @@ export class BoardEditorMain extends Component {
         const spacing = this.layoutSpacing();
         if (axis === 'col' && spacing?.lockColGap) {
             this.enforceLockedGaps();
-            this.hud?.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
-                lockCol: true,
-                lockRow: !!spacing.lockRowGap,
-            });
-            this.hud?.setStatus('吕布盘面无列距（列与列紧贴），已锁定为 0');
+            this.refreshGapHud();
+            this.hud?.setStatus(`列距已锁定为 ${spacing.colGap}（H5 包布局）`);
             return;
         }
         if (axis === 'row' && spacing?.lockRowGap) {
             this.enforceLockedGaps();
-            this.hud?.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
-                lockCol: !!spacing.lockColGap,
-                lockRow: true,
-            });
-            this.hud?.setStatus('吕布盘面列内符号紧贴（无行距），已锁定为 0');
+            this.refreshGapHud();
+            this.hud?.setStatus(`行距已锁定为 ${spacing.rowGap}（H5 包布局）`);
             return;
         }
         const step = 2;
         const cur = axis === 'col' ? this.boardView.colGap : this.boardView.rowGap;
-        // 允许负数（符号重叠排布）
         const next = Math.max(-60, Math.min(60, cur + dir * step));
         if (next === cur) return;
         if (axis === 'col') this.boardView.colGap = next;
         else this.boardView.rowGap = next;
         this.enforceLockedGaps();
-        try {
-            localStorage.setItem(
-                BoardEditorMain.GAP_STORE_KEY,
-                JSON.stringify({ col: this.boardView.colGap, row: this.boardView.rowGap }),
-            );
-        } catch {
-            /* 无 localStorage 环境（如某些预览容器）时仅本次生效 */
-        }
-        this.hud?.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
-            lockCol: !!spacing?.lockColGap,
-            lockRow: !!spacing?.lockRowGap,
-        });
-        // render 在拓扑不变时会跳过 rebuild；改间距必须强制重排
+        this.persistGapsToSymbolSheet();
+        this.refreshGapHud();
         this.boardView.invalidateLayout();
         this.showState(this.currentIndex);
+    }
+
+    private cycleColumnVAlign(dir: 1 | -1): void {
+        if (!this.boardView) return;
+        if (this.director?.isPlaying) return;
+        const cur = this.boardView.getColumnVAlign();
+        const i = Math.max(0, COLUMN_VALIGN_CYCLE.indexOf(cur));
+        const next = COLUMN_VALIGN_CYCLE[(i + dir + COLUMN_VALIGN_CYCLE.length) % COLUMN_VALIGN_CYCLE.length]!;
+        this.boardView.setColumnVAlign(next);
+        this.persistGapsToSymbolSheet();
+        this.refreshGapHud();
+        this.boardView.invalidateLayout();
+        this.showState(this.currentIndex);
+        this.hud?.setStatus(`列对齐 → ${columnVAlignLabel(next)}`);
     }
 
     // ------------------------------------------------------------------
@@ -1315,8 +1504,7 @@ export class BoardEditorMain extends Component {
      * 纹理走 RAW 模式 → 实际显示 = 纹理原始尺寸 × 该缩放。
      */
     private describeSymbolSize(symbolId: number | null): string {
-        const bv = this.boardView!;
-        const cellText = `设计格 ${bv.cellW}×档高 · 符号纹理1:1可超框`;
+        const cellText = `设计格 ${this.catalog.designW}×${this.catalog.designH} · 符号纹理1:1可超框`;
         const entry = symbolId !== null ? this.catalog.getEntry(symbolId) : null;
         if (!entry) return `${cellText}\n符号缩放请在「符号编辑器」调`;
         const name = entry.name || String(entry.id);
@@ -1602,15 +1790,15 @@ export class BoardEditorMain extends Component {
     private adjustColumnRows(dir: 1 | -1 | 0, colArg?: number, absolute?: number): void {
         if (!this.doc || !this.history || !this.boardView) return;
         if (this.director?.isPlaying) return;
-        if (this.gamePack?.id !== 'lvbu') return;
         const col = colArg ?? this.selectedCol ?? this.boardView.getSelected()?.col ?? null;
         if (col === null) {
             this.hud?.setStatus('先点选一列（盘面格或下方列头）');
             return;
         }
         const cur = Number(this.doc.states[this.currentIndex].board.topology.visibleRows[col] ?? 0);
-        const min = this.gamePack?.id === 'lvbu' ? LVBU_COLUMN_COUNT_MIN : 1;
-        const max = this.gamePack?.id === 'lvbu' ? LVBU_COLUMN_COUNT_MAX : Math.max(7, cur + 1);
+        const isLvbu = this.gamePack?.id === 'lvbu';
+        const min = isLvbu ? LVBU_COLUMN_COUNT_MIN : 1;
+        const max = isLvbu ? LVBU_COLUMN_COUNT_MAX : 12;
         const next =
             absolute !== undefined
                 ? Math.max(min, Math.min(max, Math.trunc(Number(absolute))))
@@ -1628,13 +1816,34 @@ export class BoardEditorMain extends Component {
         this.selectedCol = col;
         this.refreshSelectedCellUi(col, Math.max(0, row));
         this.refreshOccupancyHud();
-        const tier = columnCountToTier(next);
+        const tier = isLvbu ? columnCountToTier(next) : null;
         const tierH = tier != null ? tierDesignHeight(tier) : null;
         this.hud?.setStatus(
-            `列 ${col} → ${next} 个符号${
+            `列 ${col} → ${next} 格${
                 tier != null ? ` · ${tierKey(tier)}${tierH != null ? ` · ${tierH}px` : ''}` : ''
-            }（盘面已按档位重刷）`,
+            }`,
         );
+    }
+
+    /** 增减盘面列数（右侧增减；吕布顶条布局锁定 6 列） */
+    private adjustBoardCols(dir: 1 | -1): void {
+        if (!this.doc || !this.history || !this.boardView) return;
+        if (this.director?.isPlaying) return;
+        if (this.gamePack?.id === 'lvbu') {
+            this.hud?.setStatus('吕布 ways-6x7 顶条布局锁定 6 列');
+            return;
+        }
+        const cur = this.doc.states[this.currentIndex].board.topology.cols;
+        const next = Math.max(1, Math.min(12, cur + dir));
+        if (next === cur) return;
+        this.history.execute(new SetBoardColsCommand(next));
+        this.afterEdit();
+        this.clearSelection();
+        this.boardView.invalidateLayout();
+        this.showState(this.currentIndex);
+        this.refreshOccupancyHud();
+        this.fitBoardInViewport();
+        this.hud?.setStatus(`盘面列数 → ${next}`);
     }
 
     private adjustMultiplier(dir: 1 | -1): void {

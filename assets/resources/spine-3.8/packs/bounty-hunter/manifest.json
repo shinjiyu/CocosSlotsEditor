@@ -1,0 +1,202 @@
+{
+  "id": "bounty-hunter",
+  "name": "Bounty Hunter",
+  "zone": "spine-3.8",
+  "designW": 120,
+  "designH": 100,
+  "boardColGap": 0,
+  "boardRowGap": 20,
+  "cellFxScale": 0.85,
+  "columnVAlign": "center",
+  "seedDocId": "doc_bounty_hunter_recovered",
+  "seedDocPath": "configs/presentation/doc_bounty_hunter_recovered",
+  "seedRev": 2,
+  "visibleRows": [
+    3,
+    4,
+    5,
+    5,
+    4,
+    3
+  ],
+  "symbols": [
+    {
+      "id": 1,
+      "name": "B1",
+      "textureFile": "symbols/01-B1.png",
+      "spineDir": "oriSymbols/symbolB1",
+      "spineId": "spine_bh_symbolB1",
+      "textureId": "tex_bh_01_B1",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 2,
+      "name": "WX",
+      "textureFile": "symbols/02-WX.png",
+      "spineDir": "oriSymbols/symbolWX",
+      "spineId": "spine_bh_symbolWX",
+      "textureId": "tex_bh_02_WX",
+      "winAnim": "play_win",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 3,
+      "name": "M1",
+      "textureFile": "symbols/03-M1.png",
+      "spineDir": "oriSymbols/symbolM1",
+      "spineId": "spine_bh_symbolM1",
+      "textureId": "tex_bh_03_M1",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 4,
+      "name": "M2",
+      "textureFile": "symbols/04-M2.png",
+      "spineDir": "oriSymbols/symbolM2",
+      "spineId": "spine_bh_symbolM2",
+      "textureId": "tex_bh_04_M2",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 5,
+      "name": "M3",
+      "textureFile": "symbols/05-M3.png",
+      "spineDir": "oriSymbols/symbolM3",
+      "spineId": "spine_bh_symbolM3",
+      "textureId": "tex_bh_05_M3",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 6,
+      "name": "M4",
+      "textureFile": "symbols/06-M4.png",
+      "spineDir": "oriSymbols/symbolM4",
+      "spineId": "spine_bh_symbolM4",
+      "textureId": "tex_bh_06_M4",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "",
+      "kind": "normal"
+    },
+    {
+      "id": 9,
+      "name": "A",
+      "textureFile": "symbols/09-A.png",
+      "spineDir": "oriSymbols/symbolAKQJ",
+      "spineId": "spine_bh_symbolAKQJ",
+      "textureId": "tex_bh_09_A",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "A",
+      "kind": "normal"
+    },
+    {
+      "id": 10,
+      "name": "K",
+      "textureFile": "symbols/10-K.png",
+      "spineDir": "oriSymbols/symbolAKQJ",
+      "spineId": "spine_bh_symbolAKQJ",
+      "textureId": "tex_bh_10_K",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "K",
+      "kind": "normal"
+    },
+    {
+      "id": 11,
+      "name": "Q",
+      "textureFile": "symbols/11-Q.png",
+      "spineDir": "oriSymbols/symbolAKQJ",
+      "spineId": "spine_bh_symbolAKQJ",
+      "textureId": "tex_bh_11_Q",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "Q",
+      "kind": "normal"
+    },
+    {
+      "id": 12,
+      "name": "J",
+      "textureFile": "symbols/12-J.png",
+      "spineDir": "oriSymbols/symbolAKQJ",
+      "spineId": "spine_bh_symbolAKQJ",
+      "textureId": "tex_bh_12_J",
+      "winAnim": "play",
+      "idleAnim": "",
+      "spineSkin": "J",
+      "kind": "normal"
+    }
+  ],
+  "spines": [
+    {
+      "id": "spine_bh_symbolB1",
+      "dir": "oriSymbols/symbolB1",
+      "file": "symbolB1.json"
+    },
+    {
+      "id": "spine_bh_symbolWX",
+      "dir": "oriSymbols/symbolWX",
+      "file": "symbolWX.json"
+    },
+    {
+      "id": "spine_bh_symbolM1",
+      "dir": "oriSymbols/symbolM1",
+      "file": "symbolM1.json"
+    },
+    {
+      "id": "spine_bh_symbolM2",
+      "dir": "oriSymbols/symbolM2",
+      "file": "symbolM2.json"
+    },
+    {
+      "id": "spine_bh_symbolM3",
+      "dir": "oriSymbols/symbolM3",
+      "file": "symbolM3.json"
+    },
+    {
+      "id": "spine_bh_symbolM4",
+      "dir": "oriSymbols/symbolM4",
+      "file": "symbolM4.json"
+    },
+    {
+      "id": "spine_bh_symbolAKQJ",
+      "dir": "oriSymbols/symbolAKQJ",
+      "file": "symbolAKQJ.json"
+    }
+  ],
+  "effects": [
+    {
+      "id": "fx_bh_symbol_win",
+      "name": "symbol_win",
+      "dir": "effects/symbol_win",
+      "file": "symbol_win.json",
+      "defaultAnim": "play",
+      "front": false,
+      "role": "win"
+    },
+    {
+      "id": "fx_bh_symbol_eliminate",
+      "name": "symbol_eliminate",
+      "dir": "effects/symbol_eliminate",
+      "file": "symbol_eliminate.json",
+      "defaultAnim": "play",
+      "front": true,
+      "role": "vanish"
+    }
+  ],
+  "importedAt": "2026-07-23T07:40:50.267Z"
+}

@@ -13,6 +13,8 @@ import { SymbolView } from './SymbolView';
 import { cellDesignHeightForColumn, columnCountToTier, type CellRef, type BoardLayoutProfile } from './board-layout';
 import { findColumnSpanRow } from './board-layout';
 import { isColumnFillEntry } from './placement';
+import type { ColumnVAlign } from './SymbolDraft';
+import { normalizeColumnVAlign } from './SymbolDraft';
 
 const { ccclass, property } = _decorator;
 
@@ -39,6 +41,8 @@ export class BoardView extends Component {
     @property rowGap = 0;
     @property cellFill = 0.9;
     @property showGridBg = true;
+    /** 不等高列垂直对齐：top | center | bottom */
+    @property columnVAlign: ColumnVAlign = 'top';
 
     onCellPress: ((col: number, row: number) => void) | null = null;
     onStrokeEnd: (() => void) | null = null;
@@ -295,7 +299,7 @@ export class BoardView extends Component {
         const colH = this.columnSpanPixelHeight(columnCount);
         const x = this.columnCenterX(col);
         const { h: boardH } = this.boardSize(this.currentCols, this.currentVisibleRows);
-        const centerY = boardH / 2 - colH / 2;
+        const centerY = this.columnTopY(col, boardH, colH) - colH / 2;
 
         for (let r = 0; r < columnCount; r++) {
             const n = this.cellNodes[col]?.[r];
@@ -342,7 +346,7 @@ export class BoardView extends Component {
         const colH = this.columnSpanPixelHeight(this.currentVisibleRows[col] ?? 0);
         const { h: boardH } = this.boardSize(this.currentCols, this.currentVisibleRows);
         const x = this.columnCenterX(col);
-        const centerY = boardH / 2 - colH / 2;
+        const centerY = this.columnTopY(col, boardH, colH) - colH / 2;
         if (!this.selectionNode || !this.selectionNode.isValid || this.selectionNode.parent !== this.node) {
             const n = new Node('selection');
             n.addComponent(UITransform);
@@ -394,12 +398,36 @@ export class BoardView extends Component {
         return -w / 2 + this.cellW / 2 + col * (this.cellW + this.colGap);
     }
 
+    setColumnVAlign(align: ColumnVAlign | string | null | undefined): void {
+        this.columnVAlign = normalizeColumnVAlign(align);
+    }
+
+    getColumnVAlign(): ColumnVAlign {
+        return normalizeColumnVAlign(this.columnVAlign);
+    }
+
+    /**
+     * 列顶边的世界 Y（盘面原点为中心）：按 columnVAlign 把列放入整盘高度。
+     * top → 贴齐盘顶；center → 垂直居中；bottom → 贴齐盘底。
+     */
+    private columnTopY(_col: number, boardH: number, colH: number): number {
+        const align = this.getColumnVAlign();
+        if (align === 'center') return colH / 2;
+        if (align === 'bottom') return -boardH / 2 + colH;
+        return boardH / 2;
+    }
+
+    /**
+     * 格心坐标。不等高 ways 列按 columnVAlign 对齐；
+     * 等高矩形盘三种对齐视觉相同。
+     */
     cellPosition(col: number, row: number, _cols?: number, _rows?: number): Vec3 {
-        const { w, h } = this.boardSize(this.currentCols, this.currentVisibleRows);
-        const x = -w / 2 + this.cellW / 2 + col * (this.cellW + this.colGap);
+        const { h } = this.boardSize(this.currentCols, this.currentVisibleRows);
+        const x = this.columnCenterX(col);
         const columnCount = this.currentVisibleRows[col] ?? 0;
         const cellH = this.cellPixelHeight(columnCount);
-        let y = h / 2;
+        const colH = this.columnPixelHeight(col, columnCount);
+        let y = this.columnTopY(col, h, colH);
         for (let r = 0; r < row; r++) {
             y -= cellH + this.rowGap;
         }
@@ -412,18 +440,22 @@ export class BoardView extends Component {
         const visibleRows = this.currentVisibleRows;
         const { w, h } = this.boardSize(cols, visibleRows);
         const x = localX + w / 2;
-        const yFromTop = h / 2 - localY;
-        if (x < 0 || yFromTop < 0 || x >= w || yFromTop >= h) return null;
+        if (x < 0 || x >= w) return null;
         const stride = this.cellW + this.colGap;
         const col = Math.floor(x / stride);
         if (col < 0 || col >= cols) return null;
         if (x - col * stride > this.cellW) return null;
 
         const columnCount = visibleRows[col] ?? 0;
+        if (columnCount <= 0) return null;
         const cellH = this.cellPixelHeight(columnCount);
+        const colH = this.columnPixelHeight(col, columnCount);
+        const topY = this.columnTopY(col, h, colH);
+        const yFromColTop = topY - localY;
+        if (yFromColTop < 0 || yFromColTop >= colH) return null;
         let cursor = 0;
         for (let r = 0; r < columnCount; r++) {
-            if (yFromTop >= cursor && yFromTop < cursor + cellH) return { col, row: r };
+            if (yFromColTop >= cursor && yFromColTop < cursor + cellH) return { col, row: r };
             cursor += cellH + this.rowGap;
         }
         return null;

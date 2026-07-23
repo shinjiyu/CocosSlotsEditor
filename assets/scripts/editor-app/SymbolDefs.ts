@@ -210,6 +210,11 @@ export class SymbolEntry {
     @property({ tooltip: 'spine 消除动画名（postClear 帧播）' })
     vanishAnim = '';
 
+    @property({
+        tooltip: 'spine skin 名（如 AKQJ 共用骨骼时的 A/K/Q/J）；空 = 默认皮肤',
+    })
+    spineSkin = '';
+
     @property({ type: AudioClip, tooltip: '入场音效：与入场演出同时触发' })
     enterSound: AudioClip | null = null;
 

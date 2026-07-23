@@ -8,7 +8,7 @@
 import type { PresentationState } from '../vendor/slot-presentation-ir/index';
 import { deserialize, serialize } from '../vendor/slot-presentation-ir/index';
 import type { EditorDoc } from './session';
-import { resizeColumnVisibleRows } from './session';
+import { resizeBoardCols, resizeColumnVisibleRows } from './session';
 import type { IrFrameKind, IrFrameExtension } from './frameExt';
 import { readFrameExt, writeFrameExt, ensureTopStripSymbols } from './frameExt';
 
@@ -247,6 +247,36 @@ export class SetColumnVisibleRowsCommand implements EditorCommand {
         board.resolved[this.col] = JSON.parse(this.prevResolvedJson);
         board.display[this.col] = JSON.parse(this.prevDisplayJson);
         board.entities = JSON.parse(this.prevEntitiesJson);
+    }
+}
+
+/**
+ * 调整文档所有帧的列数（从右侧增减），保持各帧拓扑列数一致。
+ * 新列默认格数取当前帧已有列的最大值（至少 1）。
+ */
+export class SetBoardColsCommand implements EditorCommand {
+    readonly label = 'setBoardCols';
+    private prevBoardsJson: string[] = [];
+
+    constructor(private nextCols: number) {}
+
+    apply(doc: EditorDoc): void {
+        this.prevBoardsJson = doc.states.map((s) => JSON.stringify(s.board));
+        const refRows = Math.max(
+            1,
+            ...(doc.states[0]?.board.topology.visibleRows ?? [5]),
+        );
+        for (const state of doc.states) {
+            resizeBoardCols(state, this.nextCols, refRows);
+        }
+    }
+
+    revert(doc: EditorDoc): void {
+        for (let i = 0; i < doc.states.length; i++) {
+            const raw = this.prevBoardsJson[i];
+            if (!raw) continue;
+            doc.states[i]!.board = JSON.parse(raw);
+        }
     }
 }
 

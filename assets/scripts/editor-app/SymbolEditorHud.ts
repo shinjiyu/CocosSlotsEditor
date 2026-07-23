@@ -18,11 +18,11 @@ import {
     Mask,
     sp,
 } from 'cc';
-import type { SymbolDraft } from './SymbolDraft';
+import type { PackLayoutConfig, SymbolDraft } from './SymbolDraft';
+import { columnVAlignLabel } from './SymbolDraft';
 import type { AssetEntry } from './AssetDefs';
 import { AssetKind, assetLabel } from './AssetDefs';
 import { SymbolKind } from './SymbolDefs';
-import { PLACEMENT_RECIPE_IDS } from './placement';
 import { openAssetPicker, type AssetPickKinds } from './SymbolAssetPicker';
 
 const { ccclass } = _decorator;
@@ -52,9 +52,19 @@ export type SymbolAssetField =
     | 'spineAssetId'
     | 'textureAssetId'
     | 'winCellFxAssetId'
-    | 'vanishCellFxAssetId';
+    | 'vanishCellFxAssetId'
+    | 'digitFontAssetId';
 
 export type PackFxField = 'win' | 'vanish';
+
+export type PackLayoutField =
+    | 'designW'
+    | 'designH'
+    | 'boardColGap'
+    | 'boardRowGap'
+    | 'winCellFxScale'
+    | 'vanishCellFxScale'
+    | 'columnVAlign';
 
 export interface SymbolHudCallbacks {
     onPickSymbol(id: number): void;
@@ -65,6 +75,8 @@ export interface SymbolHudCallbacks {
     onImport(): void;
     onOpenBoard(): void;
     onPatchField(key: keyof SymbolDraft, dir: 1 | -1): void;
+    onPatchPackLayout(key: PackLayoutField, dir: 1 | -1): void;
+    onTogglePackLayoutLock(axis: 'col' | 'row'): void;
     onPickAsset(field: SymbolAssetField, assetId: string): void;
     onPickPackFx(field: PackFxField, assetId: string): void;
     onPickVariantAsset(index: number, assetId: string): void;
@@ -80,15 +92,23 @@ export class SymbolEditorHud extends Component {
     private wallViewport: Node | null = null;
     private wallContent: Node | null = null;
     private basePage: Node | null = null;
+    private layoutPage: Node | null = null;
     private variantPage: Node | null = null;
     private variantGrid: Node | null = null;
     private assetSlotsRoot: Node | null = null;
     private packFxSlotsRoot: Node | null = null;
-    private inspectorTab: 'base' | 'variants' = 'base';
+    private inspectorTab: 'base' | 'layout' | 'variants' = 'base';
     private assetsCache: readonly AssetEntry[] = [];
     private packWinFxId = '';
     private packVanishFxId = '';
+    private packLayout: PackLayoutConfig | null = null;
     private pickerRoot: Node | null = null;
+    /** 当前选中是否 multi（驱动动画区文案 / 素材槽） */
+    private selectedIsMulti = false;
+    private animSectionTitle: Label | null = null;
+    private animRowTitles = new Map<string, Label>();
+    private previewBtnLabels = new Map<string, Label>();
+    private packFxSectionTitle: Label | null = null;
 
     init(callbacks: SymbolHudCallbacks, packLabel: string): void {
         this.callbacks = callbacks;
@@ -107,23 +127,27 @@ export class SymbolEditorHud extends Component {
 
     setSelected(id: number | null, draft: SymbolDraft | null, assets: readonly AssetEntry[]): void {
         this.assetsCache = assets;
+        this.selectedIsMulti = draft?.kind === SymbolKind.multi;
         this.setInfo('sel', id == null ? '未选' : `#${id}`);
         if (!draft) {
             this.setInfo('name', '—');
             this.setInfo('kind', '—');
+            this.setInfo('scaleMul', '—');
             this.setInfo('placeMain', '—');
             this.setInfo('placeTop', '—');
             this.setInfo('idle', '—');
             this.setInfo('enter', '—');
             this.setInfo('win', '—');
             this.setInfo('vanish', '—');
+            this.applyKindMode(false);
             this.rebuildPackFxSlots();
             this.rebuildAssetSlots(null);
             this.rebuildVariantGrid(null, assets);
             return;
         }
         this.setInfo('name', draft.name || '(无名)');
-        this.setInfo('kind', draft.kind === SymbolKind.multi ? 'multi' : 'normal');
+        this.setInfo('kind', this.selectedIsMulti ? 'multi' : 'normal');
+        this.setInfo('scaleMul', String(draft.scaleMul ?? 1));
         this.setInfo('placeMain', draft.placementMainId || '(无)');
         this.setInfo(
             'placeTop',
@@ -133,11 +157,43 @@ export class SymbolEditorHud extends Component {
         );
         this.setInfo('idle', draft.idleAnim || '(空)');
         this.setInfo('enter', draft.enterAnim || '(空)');
-        this.setInfo('win', draft.winAnim || '(空)');
+        this.setInfo(
+            'win',
+            this.selectedIsMulti
+                ? draft.winAnim || '(默认 function)'
+                : draft.winAnim || '(空)',
+        );
         this.setInfo('vanish', draft.vanishAnim || '(空)');
+        this.applyKindMode(this.selectedIsMulti);
         this.rebuildPackFxSlots();
         this.rebuildAssetSlots(draft);
         this.rebuildVariantGrid(draft, assets);
+    }
+
+    /** normal ↔ multi：动画标题 / 试播按钮文案 */
+    private applyKindMode(isMulti: boolean): void {
+        if (this.animSectionTitle) {
+            this.animSectionTitle.string = isMulti ? '倍率动画' : '动画';
+        }
+        if (this.packFxSectionTitle) {
+            this.packFxSectionTitle.string = isMulti
+                ? '包级通用（倍率球不走高亮）'
+                : '包级通用（所有符号）';
+        }
+        const rowTitles = isMulti
+            ? { idle: 'idle', enter: 'enter', win: '收集', vanish: 'vanish' }
+            : { idle: 'idle', enter: 'enter', win: 'win', vanish: 'vanish' };
+        for (const [key, text] of Object.entries(rowTitles)) {
+            const lab = this.animRowTitles.get(key);
+            if (lab) lab.string = text;
+        }
+        const previewTitles = isMulti
+            ? { idle: 'idle', enter: 'enter', win: '收集', vanish: 'vanish' }
+            : { idle: 'idle', enter: 'enter', win: 'win', vanish: 'vanish' };
+        for (const [key, text] of Object.entries(previewTitles)) {
+            const lab = this.previewBtnLabels.get(key);
+            if (lab) lab.string = text;
+        }
     }
 
     /** 刷新包级通用高亮/消除展示 */
@@ -145,10 +201,36 @@ export class SymbolEditorHud extends Component {
         this.packWinFxId = winAssetId || '';
         this.packVanishFxId = vanishAssetId || '';
         this.rebuildPackFxSlots();
-        // 符号槽「→包级」文案依赖包级 id，顺带刷一下
-        if (this.assetSlotsRoot) {
-            // setSelected 会重建；这里只重建 pack；调用方通常紧接 setSelected
+    }
+
+    /** 刷新包布局页（设计格 / 间距 / FX scale） */
+    setPackLayout(layout: PackLayoutConfig | null | undefined): void {
+        this.packLayout = layout ?? null;
+        if (!layout) {
+            for (const key of [
+                'designW',
+                'designH',
+                'boardColGap',
+                'boardRowGap',
+                'lockCol',
+                'lockRow',
+                'columnVAlign',
+                'winFxScale',
+                'vanishFxScale',
+            ]) {
+                this.setInfo(key, '—');
+            }
+            return;
         }
+        this.setInfo('designW', String(layout.designW));
+        this.setInfo('designH', String(layout.designH));
+        this.setInfo('boardColGap', String(layout.boardColGap));
+        this.setInfo('boardRowGap', String(layout.boardRowGap));
+        this.setInfo('lockCol', layout.lockBoardColGap ? '锁定' : '可调');
+        this.setInfo('lockRow', layout.lockBoardRowGap ? '锁定' : '可调');
+        this.setInfo('columnVAlign', columnVAlignLabel(layout.columnVAlign));
+        this.setInfo('winFxScale', String(layout.winCellFxScale));
+        this.setInfo('vanishFxScale', String(layout.vanishCellFxScale));
     }
 
     /** 裁剪视口内的墙根；Main 往 ensureWallRoot 塞格子 */
@@ -250,8 +332,10 @@ export class SymbolEditorHud extends Component {
         panel.addChild(bg);
 
         const tabY = SE_DESIGN_H / 2 - 28;
-        panel.addChild(this.makeButton('基础', () => this.setInspectorTab('base'), new Vec3(-78, tabY, 0), 140, 32));
-        panel.addChild(this.makeButton('视觉档', () => this.setInspectorTab('variants'), new Vec3(78, tabY, 0), 140, 32));
+        const tabW = 100;
+        panel.addChild(this.makeButton('符号', () => this.setInspectorTab('base'), new Vec3(-110, tabY, 0), tabW, 32));
+        panel.addChild(this.makeButton('包布局', () => this.setInspectorTab('layout'), new Vec3(0, tabY, 0), tabW, 32));
+        panel.addChild(this.makeButton('视觉档', () => this.setInspectorTab('variants'), new Vec3(110, tabY, 0), tabW, 32));
 
         const basePage = new Node('BasePage');
         basePage.addComponent(UITransform).setContentSize(SE_PANEL_W, SE_DESIGN_H - 56);
@@ -269,7 +353,6 @@ export class SymbolEditorHud extends Component {
         headLab.color = new Color(230, 235, 245, 255);
         headLab.overflow = Label.Overflow.SHRINK;
         this.infoLabels.set('sel', headLab);
-        // name/kind 拼进同一 label 由 setSelected 更新较麻烦，分两个短字段
         basePage.addChild(head);
         y -= 22;
 
@@ -290,7 +373,17 @@ export class SymbolEditorHud extends Component {
             () => cb.onPatchField('kind', 1),
         );
         this.infoLabels.set('kind', valueKind);
-        y -= 40;
+        y -= 36;
+
+        const valueScale = this.addCycleValueRow(
+            basePage,
+            y,
+            '缩放',
+            () => cb.onPatchField('scaleMul', -1),
+            () => cb.onPatchField('scaleMul', 1),
+        );
+        this.infoLabels.set('scaleMul', valueScale);
+        y -= 36;
 
         const valuePlaceMain = this.addCycleValueRow(
             basePage,
@@ -312,7 +405,9 @@ export class SymbolEditorHud extends Component {
         this.infoLabels.set('placeTop', valuePlaceTop);
         y -= 36;
 
-        y = this.addTitle(basePage, '包级通用（所有符号）', y);
+        y = this.addTitle(basePage, '包级通用（所有符号）', y, (lab) => {
+            this.packFxSectionTitle = lab;
+        });
         const packSlots = new Node('PackFxSlots');
         packSlots.addComponent(UITransform).setContentSize(SE_PANEL_W - 16, 100);
         packSlots.setPosition(0, y - 48, 0);
@@ -328,7 +423,9 @@ export class SymbolEditorHud extends Component {
         this.assetSlotsRoot = slots;
         y -= 208;
 
-        y = this.addTitle(basePage, '动画', y);
+        y = this.addTitle(basePage, '动画', y, (lab) => {
+            this.animSectionTitle = lab;
+        });
         for (const [key, label] of [
             ['idle', 'idle'],
             ['enter', 'enter'],
@@ -341,6 +438,7 @@ export class SymbolEditorHud extends Component {
                 label,
                 () => cb.onPatchField(`${key}Anim` as keyof SymbolDraft, -1),
                 () => cb.onPatchField(`${key}Anim` as keyof SymbolDraft, 1),
+                (titleLab) => this.animRowTitles.set(key, titleLab),
             );
             this.infoLabels.set(key, valueLab);
             y -= 36;
@@ -356,9 +454,18 @@ export class SymbolEditorHud extends Component {
         ];
         let px = -SE_PANEL_W / 2 + 46;
         for (const [text, kind] of kinds) {
-            basePage.addChild(this.makeButton(text, () => cb.onPreviewAnim(kind), new Vec3(px, y - 8, 0), 68, 30));
+            const btn = this.makeButton(text, () => cb.onPreviewAnim(kind), new Vec3(px, y - 8, 0), 68, 30);
+            const lab = btn.getChildByName('lab')?.getComponent(Label);
+            if (lab) this.previewBtnLabels.set(kind, lab);
+            basePage.addChild(btn);
             px += 76;
         }
+
+        const layoutPage = new Node('LayoutPage');
+        layoutPage.addComponent(UITransform).setContentSize(SE_PANEL_W, SE_DESIGN_H - 56);
+        this.layoutPage = layoutPage;
+        panel.addChild(layoutPage);
+        this.buildLayoutPage(layoutPage);
 
         const variantPage = new Node('VariantPage');
         variantPage.addComponent(UITransform).setContentSize(SE_PANEL_W, SE_DESIGN_H - 56);
@@ -373,9 +480,121 @@ export class SymbolEditorHud extends Component {
         this.node.addChild(panel);
     }
 
-    private setInspectorTab(tab: 'base' | 'variants'): void {
+    private buildLayoutPage(page: Node): void {
+        const cb = this.callbacks!;
+        let y = SE_DESIGN_H / 2 - 70;
+        y = this.addTitle(page, '设计格（盘面中心 pitch）', y);
+
+        const designW = this.addCycleValueRow(
+            page,
+            y,
+            '格宽',
+            () => cb.onPatchPackLayout('designW', -1),
+            () => cb.onPatchPackLayout('designW', 1),
+        );
+        this.infoLabels.set('designW', designW);
+        y -= 36;
+
+        const designH = this.addCycleValueRow(
+            page,
+            y,
+            '格高',
+            () => cb.onPatchPackLayout('designH', -1),
+            () => cb.onPatchPackLayout('designH', 1),
+        );
+        this.infoLabels.set('designH', designH);
+        y -= 40;
+
+        y = this.addTitle(page, '盘面间距（BoardEditor 同步）', y);
+        const colGap = this.addCycleValueRow(
+            page,
+            y,
+            '列距',
+            () => cb.onPatchPackLayout('boardColGap', -1),
+            () => cb.onPatchPackLayout('boardColGap', 1),
+        );
+        this.infoLabels.set('boardColGap', colGap);
+        y -= 36;
+
+        const rowGap = this.addCycleValueRow(
+            page,
+            y,
+            '行距',
+            () => cb.onPatchPackLayout('boardRowGap', -1),
+            () => cb.onPatchPackLayout('boardRowGap', 1),
+        );
+        this.infoLabels.set('boardRowGap', rowGap);
+        y -= 36;
+
+        const lockCol = this.addCycleValueRow(
+            page,
+            y,
+            '列锁',
+            () => cb.onTogglePackLayoutLock('col'),
+            () => cb.onTogglePackLayoutLock('col'),
+        );
+        this.infoLabels.set('lockCol', lockCol);
+        y -= 36;
+
+        const lockRow = this.addCycleValueRow(
+            page,
+            y,
+            '行锁',
+            () => cb.onTogglePackLayoutLock('row'),
+            () => cb.onTogglePackLayoutLock('row'),
+        );
+        this.infoLabels.set('lockRow', lockRow);
+        y -= 40;
+
+        y = this.addTitle(page, '不等高列对齐', y);
+        const valign = this.addCycleValueRow(
+            page,
+            y,
+            '对齐',
+            () => cb.onPatchPackLayout('columnVAlign', -1),
+            () => cb.onPatchPackLayout('columnVAlign', 1),
+        );
+        this.infoLabels.set('columnVAlign', valign);
+        y -= 40;
+
+        y = this.addTitle(page, '包级格子 FX scale', y);
+        const winScale = this.addCycleValueRow(
+            page,
+            y,
+            '高亮',
+            () => cb.onPatchPackLayout('winCellFxScale', -1),
+            () => cb.onPatchPackLayout('winCellFxScale', 1),
+        );
+        this.infoLabels.set('winFxScale', winScale);
+        y -= 36;
+
+        const vanishScale = this.addCycleValueRow(
+            page,
+            y,
+            '消除',
+            () => cb.onPatchPackLayout('vanishCellFxScale', -1),
+            () => cb.onPatchPackLayout('vanishCellFxScale', 1),
+        );
+        this.infoLabels.set('vanishFxScale', vanishScale);
+        y -= 40;
+
+        const hint = new Node('hint');
+        hint.addComponent(UITransform).setContentSize(SE_PANEL_W - 24, 80);
+        hint.setPosition(0, y - 20, 0);
+        const hintLab = hint.addComponent(Label);
+        hintLab.string =
+            '原 Creator Inspector 配置已废弃。\n此处改动写入 symbol-sheet 草稿，\n盘面编辑器自动叠加。';
+        hintLab.fontSize = 13;
+        hintLab.lineHeight = 18;
+        hintLab.color = new Color(140, 155, 180, 255);
+        hintLab.overflow = Label.Overflow.RESIZE_HEIGHT;
+        page.addChild(hint);
+    }
+
+    private setInspectorTab(tab: 'base' | 'layout' | 'variants'): void {
         this.inspectorTab = tab;
         if (this.basePage) this.basePage.active = tab === 'base';
+        if (this.layoutPage) this.layoutPage.active = tab === 'layout';
         if (this.variantPage) this.variantPage.active = tab === 'variants';
     }
 
@@ -386,12 +605,16 @@ export class SymbolEditorHud extends Component {
         const cardW = 150;
         const cardH = 88;
         const gapX = 10;
-        const slots: Array<{ title: string; field: PackFxField; id: string }> = [
-            { title: '通用高亮', field: 'win', id: this.packWinFxId },
-            { title: '通用消除', field: 'vanish', id: this.packVanishFxId },
-        ];
+        // multi 不走中奖高亮：只展示通用消除；normal 展示高亮+消除
+        const slots: Array<{ title: string; field: PackFxField; id: string }> = this.selectedIsMulti
+            ? [{ title: '通用消除', field: 'vanish', id: this.packVanishFxId }]
+            : [
+                  { title: '通用高亮', field: 'win', id: this.packWinFxId },
+                  { title: '通用消除', field: 'vanish', id: this.packVanishFxId },
+              ];
         slots.forEach((slot, i) => {
-            const x = (i - 0.5) * (cardW + gapX);
+            const x =
+                slots.length === 1 ? 0 : (i - 0.5) * (cardW + gapX);
             root.addChild(
                 this.makeAssetCard(
                     {
@@ -417,6 +640,7 @@ export class SymbolEditorHud extends Component {
 
         const packWinName = this.assetName(this.packWinFxId);
         const packVanishName = this.assetName(this.packVanishFxId);
+        const isMulti = draft?.kind === SymbolKind.multi;
         const slots: Array<{
             title: string;
             field: SymbolAssetField;
@@ -426,21 +650,38 @@ export class SymbolEditorHud extends Component {
         }> = [
             { title: '纹理', field: 'textureAssetId', kinds: AssetKind.texture, id: draft?.textureAssetId || '' },
             { title: 'Spine', field: 'spineAssetId', kinds: AssetKind.spine, id: draft?.spineAssetId || '' },
-            {
-                title: '符号中奖',
-                field: 'winCellFxAssetId',
-                kinds: [AssetKind.effect, AssetKind.spine],
-                id: draft?.winCellFxAssetId || '',
-                emptyHint: packWinName ? `→${packWinName}` : '(用包级)',
-            },
-            {
+        ];
+        if (isMulti) {
+            slots.push({
+                title: '倍数字体',
+                field: 'digitFontAssetId',
+                kinds: AssetKind.font,
+                id: draft?.digitFontAssetId || '',
+                emptyHint: '(用包级字体)',
+            });
+            slots.push({
                 title: '符号消除',
                 field: 'vanishCellFxAssetId',
                 kinds: [AssetKind.effect, AssetKind.spine],
                 id: draft?.vanishCellFxAssetId || '',
                 emptyHint: packVanishName ? `→${packVanishName}` : '(用包级)',
-            },
-        ];
+            });
+        } else {
+            slots.push({
+                title: '符号中奖',
+                field: 'winCellFxAssetId',
+                kinds: [AssetKind.effect, AssetKind.spine],
+                id: draft?.winCellFxAssetId || '',
+                emptyHint: packWinName ? `→${packWinName}` : '(用包级)',
+            });
+            slots.push({
+                title: '符号消除',
+                field: 'vanishCellFxAssetId',
+                kinds: [AssetKind.effect, AssetKind.spine],
+                id: draft?.vanishCellFxAssetId || '',
+                emptyHint: packVanishName ? `→${packVanishName}` : '(用包级)',
+            });
+        }
 
         const cardW = 150;
         const cardH = 88;
@@ -665,7 +906,12 @@ export class SymbolEditorHud extends Component {
         });
     }
 
-    private addTitle(parent: Node, text: string, y: number): number {
+    private addTitle(
+        parent: Node,
+        text: string,
+        y: number,
+        onLab?: (lab: Label) => void,
+    ): number {
         const n = new Node('t');
         n.addComponent(UITransform).setContentSize(SE_PANEL_W - 20, 20);
         const lab = n.addComponent(Label);
@@ -674,6 +920,7 @@ export class SymbolEditorHud extends Component {
         lab.color = new Color(130, 170, 240, 255);
         n.setPosition(0, y, 0);
         parent.addChild(n);
+        onLab?.(lab);
         return y - 22;
     }
 
@@ -701,6 +948,7 @@ export class SymbolEditorHud extends Component {
         title: string,
         onPrev: () => void,
         onNext: () => void,
+        onTitleLab?: (lab: Label) => void,
     ): Label {
         const rowH = 32;
         const titleW = 64;
@@ -719,6 +967,7 @@ export class SymbolEditorHud extends Component {
         tLab.verticalAlign = Label.VerticalAlign.CENTER;
         tLab.color = new Color(160, 175, 200, 255);
         parent.addChild(t);
+        onTitleLab?.(tLab);
 
         parent.addChild(this.makeButton('▶', onNext, new Vec3(right - btnW / 2, y, 0), btnW, rowH));
         parent.addChild(this.makeButton('◀', onPrev, new Vec3(right - btnW - gap - btnW / 2, y, 0), btnW, rowH));

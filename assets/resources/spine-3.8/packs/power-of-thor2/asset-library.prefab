@@ -136,9 +136,61 @@
       },
       {
         "__id__": 26
+      },
+      {
+        "__id__": 27
+      },
+      {
+        "__id__": 28
       }
     ],
     "_id": ""
+  },
+  {
+    "__type__": "AssetEntry",
+    "id": "fx_thor2_symbol_eliminate",
+    "name": "symbol_eliminate",
+    "kind": 5,
+    "texture": null,
+    "spine": {
+      "__uuid__": "51ab846c-5bc3-44f2-923e-b592d1652627",
+      "__expectedType__": "sp.SkeletonData"
+    },
+    "audio": null,
+    "font": null,
+    "prefab": null,
+    "defaultAnim": "play",
+    "effectFront": true,
+    "effectScale": 0.75,
+    "effectOffset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "volume": 1
+  },
+  {
+    "__type__": "AssetEntry",
+    "id": "fx_thor2_symbol_win",
+    "name": "symbol_win",
+    "kind": 5,
+    "texture": null,
+    "spine": {
+      "__uuid__": "e2f2c68c-2fd4-425a-8326-b2072e6dce50",
+      "__expectedType__": "sp.SkeletonData"
+    },
+    "audio": null,
+    "font": null,
+    "prefab": null,
+    "defaultAnim": "play",
+    "effectFront": false,
+    "effectScale": 0.75,
+    "effectOffset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "volume": 1
   },
   {
     "__type__": "AssetEntry",

@@ -10,8 +10,10 @@ font/ effects/         # 倍率字、扩散 FX
 
 ## 符号配置
 
-- **配置入口**：H5 `SymbolEditor` 场景（BoardEditor 工具栏「→符号」）
-- **不要**再靠 Creator 里双击 `symbol-library.prefab` 画预览墙改符号（已移除编辑期预览）
+- **配置入口**：H5 `SymbolEditor`（BoardEditor 工具栏「→符号」）
+  - 「符号」页：素材 / 动画 / 试播
+  - 「包布局」页：设计格、行列距、锁定、格子 FX scale（`packLayout`）
+- **不要**在 Creator Inspector 改 `SymbolLibrary` 布局字段（已 `visible: false`）
 - 符号条目优先填 `textureAssetId` / `spineAssetId` / `digitFontAssetId`；运行时由 `SymbolCatalog` 解析
 
 ## 重建素材库

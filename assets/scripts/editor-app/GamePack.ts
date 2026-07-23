@@ -25,24 +25,60 @@ export interface SymbolPackDef {
     name: string;
     /** 所属 Spine 资源区 */
     zone: SpineZoneId;
+    /**
+     * 默认盘面种子（resources 路径，无扩展名）。
+     * BoardEditor 切包时加载；缺省则用 doc_example。
+     */
+    seedDocId?: string;
+    seedDocPath?: string;
+    /** 升高后清掉该 doc 的 localStorage 自动存档 */
+    seedRev?: number;
+    /**
+     * 是否支持不等高列（ways）。true 时 BoardEditor 显示「列格数」面板。
+     * 矩形固定盘（赛特/雷神）保持 false，避免空盘上误调列高。
+     */
+    variableColumns?: boolean;
+    /** 吕布类 tall-symbol 刷子档；仅 variableColumns 时有意义 */
+    tallSymbolTiers?: boolean;
 }
 
-/** 全量登记（含各区）；UI / 加载会按激活区过滤 */
+/** 全量登记（含各区）；UI / 加载会按激活区过滤 — 包↔种子盘面由此表自由选择 */
 export const SYMBOL_PACKS: readonly SymbolPackDef[] = [
     {
         id: 'golden-seth',
         name: 'Golden Seth',
         zone: 'spine-3.8',
+        seedDocId: 'doc_example',
+        seedDocPath: 'configs/presentation/doc_example',
+        variableColumns: true,
     },
     {
         id: 'power-of-thor2',
         name: 'Power of Thor 2',
         zone: 'spine-3.8',
+        seedDocId: 'doc_thor2_recovered',
+        seedDocPath: 'configs/presentation/doc_thor2_recovered',
+        seedRev: 2,
+        variableColumns: true,
+    },
+    {
+        id: 'bounty-hunter',
+        name: 'Bounty Hunter',
+        zone: 'spine-3.8',
+        seedDocId: 'doc_bounty_hunter_recovered',
+        seedDocPath: 'configs/presentation/doc_bounty_hunter_recovered',
+        seedRev: 2,
+        variableColumns: true,
     },
     {
         id: 'lvbu',
         name: 'LvBu (ways-6x7)',
         zone: 'spine-4.2',
+        seedDocId: 'doc_lvbu_ways67',
+        seedDocPath: 'configs/presentation/doc_lvbu_ways67',
+        seedRev: 1,
+        variableColumns: true,
+        tallSymbolTiers: true,
     },
 ];
 

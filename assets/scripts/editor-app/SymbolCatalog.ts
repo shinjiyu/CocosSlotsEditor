@@ -7,7 +7,16 @@
  * 对外 getEntry 返回已解析副本，盘面编辑器只消费符号，不直接碰素材。
  */
 
-import { Color, EffectAsset, Material, Prefab, SpriteFrame, Texture2D, resources } from 'cc';
+import {
+    Color,
+    EffectAsset,
+    Material,
+    Prefab,
+    SpriteFrame,
+    Texture2D,
+    js,
+    resources,
+} from 'cc';
 import { DESIGN_CELL_H, DESIGN_CELL_W, isMultiEntry } from './SymbolDefs';
 import type { CellFxDef, DissolveFxConfig, SymbolEntry, SymbolProvider } from './SymbolDefs';
 import { SymbolLibrary } from './SymbolLibrary';
@@ -15,6 +24,7 @@ import { AssetLibrary } from './AssetLibrary';
 import type { AssetProvider } from './AssetDefs';
 import { resolveSymbolEntryCopy, applyEffectAsset, matchCellFxAssetId } from './SymbolResolve';
 import { AssetKind } from './AssetDefs';
+import { resolveDraft, normalizePackLayout, type PackLayoutConfig, type SymbolSheetDoc } from './SymbolDraft';
 import {
     DEFAULT_GAME_ID,
     assertPackLibraryPath,
@@ -24,6 +34,19 @@ import {
     type SymbolPackDef,
 } from './GamePack';
 import { packResourcePath } from './SpineZone';
+
+/** 避免 ESM 循环依赖时 import 绑定尚为 undefined，导致 getComponent(null) 抛 constructor */
+function resolveAssetLibraryCtor(): typeof AssetLibrary | null {
+    if (typeof AssetLibrary === 'function') return AssetLibrary;
+    const byName = js.getClassByName('AssetLibrary') as typeof AssetLibrary | null;
+    return byName ?? null;
+}
+
+function resolveSymbolLibraryCtor(): typeof SymbolLibrary | null {
+    if (typeof SymbolLibrary === 'function') return SymbolLibrary;
+    const byName = js.getClassByName('SymbolLibrary') as typeof SymbolLibrary | null;
+    return byName ?? null;
+}
 
 export class SymbolCatalog implements SymbolProvider {
     private lib: SymbolLibrary | null = null;
@@ -63,6 +86,54 @@ export class SymbolCatalog implements SymbolProvider {
 
     get designH(): number {
         return this.lib?.designH ?? DESIGN_CELL_H;
+    }
+
+    /** 包级盘面间距（SymbolLibrary / H5 packLayout；无库时回落 2/2） */
+    get boardSpacing(): {
+        colGap: number;
+        rowGap: number;
+        lockColGap: boolean;
+        lockRowGap: boolean;
+    } {
+        return (
+            this.lib?.boardSpacing ?? {
+                colGap: 2,
+                rowGap: 2,
+                lockColGap: false,
+                lockRowGap: false,
+            }
+        );
+    }
+
+    /** 从当前库读出包布局（供 H5 草稿初始化） */
+    readPackLayout(): PackLayoutConfig {
+        const lib = this.lib;
+        return normalizePackLayout({
+            designW: lib?.designW,
+            designH: lib?.designH,
+            boardColGap: lib?.boardColGap,
+            boardRowGap: lib?.boardRowGap,
+            lockBoardColGap: lib?.lockBoardColGap,
+            lockBoardRowGap: lib?.lockBoardRowGap,
+            winCellFxScale: lib?.winCellFx?.scale,
+            vanishCellFxScale: lib?.vanishCellFx?.scale,
+            columnVAlign: lib?.columnVAlign,
+        });
+    }
+
+    /** H5 packLayout → 写入库内存（不改 prefab 磁盘） */
+    applyPackLayout(layout: PackLayoutConfig | null | undefined): void {
+        if (!this.lib || !layout) return;
+        const L = normalizePackLayout(layout);
+        this.lib.symbolWidth = L.designW;
+        this.lib.symbolHeight = L.designH;
+        this.lib.boardColGap = L.boardColGap;
+        this.lib.boardRowGap = L.boardRowGap;
+        this.lib.lockBoardColGap = L.lockBoardColGap;
+        this.lib.lockBoardRowGap = L.lockBoardRowGap;
+        this.lib.columnVAlign = L.columnVAlign;
+        if (this.lib.winCellFx) this.lib.winCellFx.scale = L.winCellFxScale;
+        if (this.lib.vanishCellFx) this.lib.vanishCellFx.scale = L.vanishCellFxScale;
     }
 
     getFrame(id: number): SpriteFrame | null {
@@ -151,10 +222,22 @@ export class SymbolCatalog implements SymbolProvider {
             try {
                 assertPackLibraryPath(tryAsset);
                 const assetPrefab = await loadRes<Prefab>(tryAsset, Prefab);
+                const AssetLibraryCtor = resolveAssetLibraryCtor();
+                if (!AssetLibraryCtor) {
+                    throw new Error(
+                        'AssetLibrary 类未注册（import 为 undefined 或脚本未进包）',
+                    );
+                }
                 this.assets =
-                    assetPrefab.data?.getComponent(AssetLibrary) ?? null;
+                    assetPrefab.data?.getComponent(AssetLibraryCtor) ?? null;
                 if (this.assets) {
-                    console.log(`[SymbolCatalog] asset-library ← ${tryAsset} (${this.assets.assets.length} assets)`);
+                    console.log(
+                        `[SymbolCatalog] asset-library ← ${tryAsset} (${this.assets.assets.length} assets)`,
+                    );
+                } else {
+                    console.warn(
+                        `[SymbolCatalog] ${tryAsset} 已加载但根节点无 AssetLibrary 组件`,
+                    );
                 }
             } catch (e) {
                 console.warn(
@@ -165,7 +248,11 @@ export class SymbolCatalog implements SymbolProvider {
         }
 
         const prefab = await loadRes<Prefab>(libPath, Prefab);
-        const lib = prefab.data?.getComponent(SymbolLibrary) ?? null;
+        const SymbolLibraryCtor = resolveSymbolLibraryCtor();
+        if (!SymbolLibraryCtor) {
+            throw new Error('SymbolLibrary 类未注册（import 为 undefined 或脚本未进包）');
+        }
+        const lib = prefab.data?.getComponent(SymbolLibraryCtor) ?? null;
         if (!lib) throw new Error(`${libPath} 根节点缺少 SymbolLibrary 组件`);
         this.lib = lib;
         this.rebuildResolved();
@@ -174,8 +261,9 @@ export class SymbolCatalog implements SymbolProvider {
             if (seen.has(e.id)) console.warn(`[SymbolCatalog] 重复的 symbol id: ${e.id} (${e.name})`);
             seen.add(e.id);
         }
+        const withTex = [...this.resolved.values()].filter((e) => !!e.texture || !!e.spine).length;
         console.log(
-            `[SymbolCatalog] symbols ← ${libPath} (${this.resolved.size} resolved, assets=${this.assets ? 'yes' : 'no'})`,
+            `[SymbolCatalog] symbols ← ${libPath} (${this.resolved.size} resolved, assets=${this.assets ? 'yes' : 'no'}, withTexOrSpine=${withTex})`,
         );
     }
 
@@ -183,6 +271,29 @@ export class SymbolCatalog implements SymbolProvider {
     async loadPack(pack: SymbolPackDef): Promise<void> {
         await this.load(libraryPathFor(pack), assetLibraryPathFor(pack));
         await this.loadOptionalDissolve(pack);
+    }
+
+    /**
+     * 用 SymbolEditor 本地草稿覆盖已解析符号表（含清空 spine/贴图）与包布局。
+     * 不改 prefab 源；切包/重载 library 后需再调一次。
+     */
+    applySymbolSheet(doc: SymbolSheetDoc | null | undefined): boolean {
+        if (!doc?.symbols?.length) return false;
+        if (doc.packLayout) this.applyPackLayout(doc.packLayout);
+        if (doc.winCellFxAssetId != null) this.setPackCellFx('win', doc.winCellFxAssetId);
+        if (doc.vanishCellFxAssetId != null) this.setPackCellFx('vanish', doc.vanishCellFxAssetId);
+        // 再写一次 scale：setPackCellFx 会从 AssetEntry.effectScale 覆盖
+        if (doc.packLayout) {
+            if (this.lib?.winCellFx) this.lib.winCellFx.scale = doc.packLayout.winCellFxScale;
+            if (this.lib?.vanishCellFx) this.lib.vanishCellFx.scale = doc.packLayout.vanishCellFxScale;
+        }
+        const fallbacks = new Map((this.lib?.symbols ?? []).map((e) => [e.id, e] as const));
+        this.resolved.clear();
+        for (const d of doc.symbols) {
+            this.resolved.set(d.id, resolveDraft(d, this.assets, fallbacks.get(d.id) ?? null));
+        }
+        console.log(`[SymbolCatalog] applied symbol sheet pack=${doc.packId} symbols=${this.resolved.size}`);
+        return true;
     }
 
     private async loadOptionalDissolve(pack: SymbolPackDef): Promise<void> {

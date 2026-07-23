@@ -1,13 +1,12 @@
 /**
- * SymbolLibrary — 符号表（用素材库 id 组装逻辑符号）。
+ * SymbolLibrary — 符号表运行时数据容器（用素材库 id 组装逻辑符号）。
  *
  * 分层：
  *   1) asset-library.prefab  — 素材库
- *   2) symbol-library.prefab — 本组件（*AssetId + placement + 动画名）
- *   3) BoardEditor / SymbolEditor — 消费已解析符号
+ *   2) symbol-library.prefab — 本组件（序列化包数据；不要在 Creator Inspector 配）
+ *   3) H5 SymbolEditor / BoardEditor — 唯一配置入口（SymbolSheetDoc.packLayout + symbols）
  *
- * 配置与预览请走 H5「符号编辑器」(SymbolEditor 场景)；
- * 本组件仅作运行时数据容器，不再在 Creator 场景视图画预览墙。
+ * 设计格 / 行列距 / FX scale 等请在 H5「符号编辑器」改；本组件仅承载运行时字段。
  */
 
 import { _decorator, BitmapFont, Component, SpriteFrame, sp } from 'cc';
@@ -27,37 +26,64 @@ export class SymbolLibrary extends Component implements SymbolProvider {
     @property({ type: [SymbolEntry], tooltip: '符号条目；优先填 *AssetId，由 SymbolCatalog 解析' })
     symbols: SymbolEntry[] = [];
 
-    @property({ displayName: '符号设计宽(px)', tooltip: '全局设计尺寸；运行时按格子等比缩放' })
+    /** @deprecated 请在 H5 符号编辑器改；仅作运行时/包序列化字段 */
+    @property({ visible: false })
     symbolWidth = DESIGN_CELL_W;
 
-    @property({ displayName: '符号设计高(px)' })
+    /** @deprecated 请在 H5 符号编辑器改 */
+    @property({ visible: false })
     symbolHeight = DESIGN_CELL_H;
 
-    @property({ type: CellFxDef, tooltip: '全局中奖格子特效' })
+    /** @deprecated 请在 H5 符号编辑器改 */
+    @property({ visible: false })
+    boardColGap = 2;
+
+    /** @deprecated 请在 H5 符号编辑器改 */
+    @property({ visible: false })
+    boardRowGap = 2;
+
+    /** @deprecated 请在 H5 符号编辑器改 */
+    @property({ visible: false })
+    lockBoardColGap = false;
+
+    /** @deprecated 请在 H5 符号编辑器改 */
+    @property({ visible: false })
+    lockBoardRowGap = false;
+
+    /** @deprecated 请在 H5「包布局」改：top | center | bottom */
+    @property({ visible: false })
+    columnVAlign = 'top';
+
+    /** @deprecated 包级 FX 请在 H5 选素材 + 调 scale；此处仅运行时 */
+    @property({ type: CellFxDef, visible: false })
     winCellFx = new CellFxDef();
 
-    @property({ type: CellFxDef, tooltip: '全局消除格子特效' })
+    /** @deprecated 同上 */
+    @property({ type: CellFxDef, visible: false })
     vanishCellFx = new CellFxDef();
 
     @property({
         type: BitmapFont,
+        visible: false,
         tooltip: '倍率球默认位图字（kind=multi 且条目 digitFont 为空时用）',
     })
     multiDigitFont: BitmapFont | null = null;
 
     @property({
         type: SpriteFrame,
+        visible: false,
         tooltip: '扩散拖尾粒子贴图（timesParticle / BlueTimesMoving）',
     })
     expandSplitParticle: SpriteFrame | null = null;
 
     @property({
         type: sp.SkeletonData,
+        visible: false,
         tooltip: '扩散落地 spine（split_B）',
     })
     expandSplitB: sp.SkeletonData | null = null;
 
-    @property({ tooltip: '落地动画名' })
+    @property({ visible: false, tooltip: '落地动画名' })
     expandSplitBAnim = 'split_B';
 
     getEntry(id: number): SymbolEntry | null {
@@ -70,6 +96,23 @@ export class SymbolLibrary extends Component implements SymbolProvider {
 
     get designH(): number {
         return this.symbolHeight > 0 ? this.symbolHeight : DESIGN_CELL_H;
+    }
+
+    /** 盘面默认间距（H5 packLayout 叠加后供 BoardEditor 读取） */
+    get boardSpacing(): {
+        colGap: number;
+        rowGap: number;
+        lockColGap: boolean;
+        lockRowGap: boolean;
+        columnVAlign: string;
+    } {
+        return {
+            colGap: this.boardColGap,
+            rowGap: this.boardRowGap,
+            lockColGap: this.lockBoardColGap,
+            lockRowGap: this.lockBoardRowGap,
+            columnVAlign: this.columnVAlign || 'top',
+        };
     }
 
     winCellFxFor(id: number): CellFxDef | null {

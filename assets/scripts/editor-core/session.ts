@@ -304,6 +304,63 @@ export function makeEmptyDoc(
 }
 
 /**
+ * 调整盘面列数（从右侧增减）。
+ * 伸长：追加空列（默认 defaultRows 格）；缩短：丢掉最右列并清理 entity。
+ */
+export function resizeBoardCols(
+    state: PresentationState,
+    nextCols: number,
+    defaultRows = 5,
+): void {
+    const topo = state.board.topology;
+    const prevCols = topo.cols;
+    if (!Number.isInteger(nextCols) || nextCols < 1) {
+        throw new Error(`cols 必须是 >= 1 的整数，收到 ${String(nextCols)}`);
+    }
+    if (nextCols === prevCols) return;
+
+    const rowsPerNew =
+        Number.isInteger(defaultRows) && defaultRows >= 1
+            ? defaultRows
+            : Math.max(1, ...topo.visibleRows, 5);
+
+    if (nextCols > prevCols) {
+        for (let c = prevCols; c < nextCols; c++) {
+            topo.visibleRows.push(rowsPerNew);
+            topo.extraTop.push(0);
+            topo.extraBottom.push(0);
+            const colCells = [];
+            for (let r = 0; r < rowsPerNew; r++) {
+                colCells.push({ symbolId: null, entityRef: null });
+            }
+            state.board.resolved.push(colCells.map((cell) => ({ ...cell })));
+            state.board.display.push(colCells.map((cell) => ({ ...cell })));
+        }
+    } else {
+        for (let c = nextCols; c < prevCols; c++) {
+            for (const grid of [state.board.resolved, state.board.display]) {
+                const column = grid[c];
+                if (!column) continue;
+                for (const cell of column) {
+                    if (cell?.entityRef) delete state.board.entities[cell.entityRef];
+                }
+            }
+        }
+        topo.visibleRows.length = nextCols;
+        topo.extraTop.length = nextCols;
+        topo.extraBottom.length = nextCols;
+        state.board.resolved.length = nextCols;
+        state.board.display.length = nextCols;
+        for (const id of Object.keys(state.board.entities)) {
+            const ent = state.board.entities[id];
+            if (!ent) continue;
+            if (ent.anchor.col >= nextCols) delete state.board.entities[id];
+        }
+    }
+    topo.cols = nextCols;
+}
+
+/**
  * 调整某列 visibleRows，并同步 resolved/display 列长度。
  * 伸长：底部追加空格；缩短：从底部截断并清理越界 entity。
  */

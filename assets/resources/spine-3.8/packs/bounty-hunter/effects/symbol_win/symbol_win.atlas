@@ -1,0 +1,166 @@
+symbol_win.jpg
+size: 1632,1096
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+ani/s28_spin-click_00
+  rotate: true
+  xy: 564, 2
+  size: 234, 243
+  orig: 360, 360
+  offset: 72, 68
+  index: -1
+ani/s28_spin-click_01
+  rotate: true
+  xy: 1370, 833
+  size: 260, 258
+  orig: 360, 360
+  offset: 51, 61
+  index: -1
+ani/s28_spin-click_02
+  rotate: true
+  xy: 581, 811
+  size: 282, 274
+  orig: 360, 360
+  offset: 27, 31
+  index: -1
+ani/s28_spin-click_03
+  rotate: true
+  xy: 287, 478
+  size: 294, 267
+  orig: 360, 360
+  offset: 19, 46
+  index: -1
+ani/s28_spin-click_04
+  rotate: true
+  xy: 2, 468
+  size: 304, 283
+  orig: 360, 360
+  offset: 17, 38
+  index: -1
+ani/s28_spin-click_05
+  rotate: false
+  xy: 2, 170
+  size: 296, 296
+  orig: 360, 360
+  offset: 30, 30
+  index: -1
+ani/s28_spin-click_06
+  rotate: true
+  xy: 2, 774
+  size: 319, 309
+  orig: 360, 360
+  offset: 18, 12
+  index: -1
+ani/s28_spin-click_07
+  rotate: true
+  xy: 1330, 9
+  size: 240, 256
+  orig: 360, 360
+  offset: 60, 43
+  index: -1
+ani/s28_spin-click_08
+  rotate: true
+  xy: 1087, 5
+  size: 244, 241
+  orig: 360, 360
+  offset: 57, 59
+  index: -1
+ani/s28_spin-click_09
+  rotate: true
+  xy: 1116, 819
+  size: 274, 252
+  orig: 360, 360
+  offset: 28, 56
+  index: -1
+ani/s28_spin-click_10
+  rotate: true
+  xy: 1101, 537
+  size: 277, 255
+  orig: 360, 360
+  offset: 26, 54
+  index: -1
+ani/s28_spin-click_11
+  rotate: true
+  xy: 826, 239
+  size: 281, 259
+  orig: 360, 360
+  offset: 24, 52
+  index: -1
+ani/s28_spin-click_12
+  rotate: true
+  xy: 300, 192
+  size: 284, 262
+  orig: 360, 360
+  offset: 22, 51
+  index: -1
+ani/s28_spin-click_13
+  rotate: true
+  xy: 313, 806
+  size: 287, 266
+  orig: 360, 360
+  offset: 20, 49
+  index: -1
+ani/s28_spin-click_14
+  rotate: false
+  xy: 1358, 548
+  size: 264, 269
+  orig: 360, 360
+  offset: 43, 47
+  index: -1
+ani/s28_spin-click_15
+  rotate: false
+  xy: 1345, 262
+  size: 258, 273
+  orig: 360, 360
+  offset: 48, 45
+  index: -1
+ani/s28_spin-click_16
+  rotate: false
+  xy: 1087, 251
+  size: 256, 277
+  orig: 360, 360
+  offset: 47, 43
+  index: -1
+ani/s28_spin-click_17
+  rotate: false
+  xy: 857, 816
+  size: 257, 277
+  orig: 360, 360
+  offset: 45, 45
+  index: -1
+ani/s28_spin-click_18
+  rotate: false
+  xy: 840, 530
+  size: 259, 279
+  orig: 360, 360
+  offset: 44, 44
+  index: -1
+ani/s28_spin-click_19
+  rotate: false
+  xy: 564, 238
+  size: 260, 282
+  orig: 360, 360
+  offset: 43, 43
+  index: -1
+vfx_shine
+  rotate: false
+  xy: 556, 522
+  size: 282, 282
+  orig: 350, 350
+  offset: 34, 34
+  index: -1
+vfx_shine1
+  rotate: false
+  xy: 809, 27
+  size: 207, 209
+  orig: 207, 209
+  offset: 0, 0
+  index: -1
+vfx_sprak1
+  rotate: false
+  xy: 2, 28
+  size: 123, 140
+  orig: 125, 142
+  offset: 1, 1
+  index: -1

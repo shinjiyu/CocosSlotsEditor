@@ -33,6 +33,7 @@ function cloneEntry(entry: SymbolEntry): SymbolEntry {
     copy.enterAnim = entry.enterAnim;
     copy.winAnim = entry.winAnim;
     copy.vanishAnim = entry.vanishAnim;
+    copy.spineSkin = entry.spineSkin || '';
     copy.enterSound = entry.enterSound;
     copy.winSound = entry.winSound;
     copy.vanishSound = entry.vanishSound;
@@ -81,23 +82,30 @@ export function resolveSymbolEntry(entry: SymbolEntry, assets: AssetProvider | n
 
     const tex = assets.getAsset(entry.textureAssetId);
     if (tex?.texture) entry.texture = tex.texture;
+    else if (!entry.textureAssetId) entry.texture = null;
 
     const spine = assets.getAsset(entry.spineAssetId);
     if (spine?.spine) {
         entry.spine = spine.spine;
         if (!entry.idleAnim && spine.defaultAnim) entry.idleAnim = spine.defaultAnim;
+    } else if (!entry.spineAssetId) {
+        entry.spine = null;
     }
 
     const prefab = assets.getAsset(entry.prefabAssetId);
     if (prefab?.prefab) entry.prefab = prefab.prefab;
+    else if (!entry.prefabAssetId) entry.prefab = null;
 
     for (const variant of entry.visualVariants ?? []) {
         const variantTexture = assets.getAsset(variant.textureAssetId);
         if (variantTexture?.texture) variant.texture = variantTexture.texture;
+        else if (!variant.textureAssetId) variant.texture = null;
         const variantSpine = assets.getAsset(variant.spineAssetId);
         if (variantSpine?.spine) variant.spine = variantSpine.spine;
+        else if (!variant.spineAssetId) variant.spine = null;
         const variantPrefab = assets.getAsset(variant.prefabAssetId);
         if (variantPrefab?.prefab) variant.prefab = variantPrefab.prefab;
+        else if (!variant.prefabAssetId) variant.prefab = null;
     }
 
     const enterSfx = assets.getAsset(entry.enterSoundAssetId);

@@ -19,10 +19,12 @@
 | 阶段 | 入口 | 说明 |
 |------|------|------|
 | **① 素材** | Creator：`asset-library.prefab` | 登记纹理/Spine/音频（仍以 IDE 为主） |
-| **② 符号** | **预览 `SymbolEditor` 场景**，或盘面顶栏「→符号」 | 选素材 id、动画名、试播；导出 `symbol-sheet-*.json` |
-| **③ 盘面** | 预览 `BoardEditor`，或符号顶栏「→盘面」 | 用符号刷盘面 |
+| **② 符号** | **预览 `SymbolEditor`**，或盘面顶栏「→符号」 | 选素材、动画、**包布局**（设计格/间距/FX scale）；导出 `symbol-sheet-*.json` |
+| **③ 盘面** | 预览 `BoardEditor`，或符号顶栏「→盘面」 | 用符号刷盘面；间距改动写回同一份 sheet |
 
-Creator 里仍可双击 `symbol-library.prefab` 做 IDE 侧编辑；H5 改动默认存 `localStorage`，导出 JSON 可备份。
+**已废弃**：在 Creator Inspector 配置 `SymbolLibrary` 的 `symbolWidth/Height`、`boardColGap/RowGap`、格子 FX scale。这些字段仅作运行时序列化容器（`visible: false`），编辑一律走 H5「包布局」。
+
+H5 改动默认存 `localStorage`（`symbolEditor.symbolSheet.<packId>`），导出 JSON 可备份；包构建脚本仍可把布局写进 prefab 供运行时。
 
 ## 功能总览
 
@@ -31,14 +33,14 @@ Creator 里仍可双击 `symbol-library.prefab` 做 IDE 侧编辑；H5 改动默
 - **刷子式盘面编辑**：右侧 Inspector 选中 symbol 作为刷子，在盘面上点/拖绘制
 - **帧管理 / 动画编辑 / 播放预览 / 行距列距 / 自动存档 / 撤销重做**（同前）
 
-### 素材库 + 符号表（①②，Creator IDE）
+### 素材库 + 符号表（①②）
 
 - 包路径：`assets/resources/spine-*/packs/<packId>/`
-  - `asset-library.prefab` — `AssetLibrary`（可缺省；缺省则符号用直接引用，兼容 golden-seth）
-  - `symbol-library.prefab` — `SymbolLibrary`
+  - `asset-library.prefab` — `AssetLibrary`（可缺省；缺省则符号用直接引用）
+  - `symbol-library.prefab` — `SymbolLibrary`（运行时数据；**不要用 Inspector 配布局**）
 - 登记：`GamePack.ts` → `SYMBOL_PACKS`（含 `zone`）
 - Spine 区切换：菜单或 `node tools/switch-spine-zone.cjs 3.8|4.2`，**重启预览**
-- 运行时：`SymbolCatalog` 先载素材库，再按 `*AssetId` 解析符号
+- 运行时：`SymbolCatalog` 先载素材库，再按 `*AssetId` 解析符号；编辑器叠加 `SymbolSheetDoc.packLayout`
 
 ### IAnim / 导出
 
@@ -67,10 +69,10 @@ assets/
 ## 使用流程
 
 1. **建素材**：`asset-library.prefab` 登记 tex_ / spine_ / sfx_ / fx_ …
-2. **组符号**：`symbol-library.prefab` 填符号 id，引用素材 id，配 idle/enter/win/vanish
+2. **组符号**：预览 `SymbolEditor` — 引用素材 id、配动画；「包布局」设设计格/间距/FX scale
 3. **切区**（如需）：`node tools/switch-spine-zone.cjs 3.8|4.2` → 重启预览
 4. **编盘面**：预览 BoardEditor → 刷子绘制 / 配动画 → 导出 SPIR
-5. **迁库**：导出 Symbol 包到其它工程
+5. **迁库**：导出 Symbol 包到其它工程（或导出 symbol-sheet JSON 备份）
 
 ## Remote Console（预览调试）
 

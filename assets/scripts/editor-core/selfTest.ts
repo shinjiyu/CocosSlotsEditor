@@ -10,6 +10,7 @@ import {
     serializeDoc,
     deserializeDoc,
     resizeColumnVisibleRows,
+    resizeBoardCols,
 } from './session';
 import {
     AddStateCommand,
@@ -17,6 +18,7 @@ import {
     SetResolvedCellCommand,
     SetFrameKindCommand,
     SetColumnVisibleRowsCommand,
+    SetBoardColsCommand,
     CommandHistory,
 } from './commands';
 import { readFrameExt } from './frameExt';
@@ -130,6 +132,22 @@ export function runEditorCoreSelfTest(): SelfTestResult {
     check('cmd set col rows', heightDoc.states[0].board.topology.visibleRows[1] === 3);
     hHist.undo();
     check('cmd undo col rows', heightDoc.states[0].board.topology.visibleRows[1] === 7);
+
+    const colsDoc = makeEmptyDoc('doc_cols', '列数', 4, [3, 3, 3, 3]);
+    resizeBoardCols(colsDoc.states[0], 6, 2);
+    check('resize grow cols', colsDoc.states[0].board.topology.cols === 6);
+    check('resize grow visibleRows len', colsDoc.states[0].board.topology.visibleRows.length === 6);
+    check('resize grow new col rows', colsDoc.states[0].board.topology.visibleRows[5] === 2);
+    resizeBoardCols(colsDoc.states[0], 3);
+    check('resize shrink cols', colsDoc.states[0].board.topology.cols === 3);
+    check('resize shrink grids', colsDoc.states[0].board.resolved.length === 3);
+
+    const cmdCols = makeEmptyDoc('doc_cols_cmd', '列数cmd', 5, 4);
+    const hist2 = new CommandHistory(cmdCols);
+    hist2.execute(new SetBoardColsCommand(7));
+    check('cmd set cols', cmdCols.states[0].board.topology.cols === 7);
+    hist2.undo();
+    check('cmd undo cols', cmdCols.states[0].board.topology.cols === 5);
     check('height doc valid', validateDoc(heightDoc).length === 0);
 
     return { ok: failures.length === 0, total, failures };

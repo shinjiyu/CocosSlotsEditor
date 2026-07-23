@@ -411,6 +411,13 @@ export class SymbolView extends Component {
         const sk = n.addComponent(sp.Skeleton);
         sk.skeletonData = entry.spine;
         sk.premultipliedAlpha = false;
+        if (entry.spineSkin?.trim()) {
+            try {
+                sk.setSkin(entry.spineSkin.trim());
+            } catch (e) {
+                console.warn(`[SymbolView] setSkin("${entry.spineSkin}") failed`, e);
+            }
+        }
         if (entry.idleAnim) sk.setAnimation(0, entry.idleAnim, true);
         this.content.addChild(n);
         this.spineNode = n;

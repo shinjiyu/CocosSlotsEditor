@@ -7,13 +7,23 @@ import { _decorator, Component, Node, UITransform, Color, Graphics, Label, direc
 import { SymbolCatalog } from './SymbolCatalog';
 import { SymbolView } from './SymbolView';
 import { SymbolEditorHud } from './SymbolEditorHud';
-import type { SymbolAssetField, SymbolHudCallbacks, PackFxField } from './SymbolEditorHud';
+import type {
+    PackLayoutField,
+    SymbolAssetField,
+    SymbolHudCallbacks,
+    PackFxField,
+} from './SymbolEditorHud';
 import {
     draftFromEntry,
     makeEmptyDraft,
+    normalizePackLayout,
     parseSheet,
     resolveDraft,
     serializeSheet,
+    SYMBOL_SHEET_STORE_PREFIX,
+    COLUMN_VALIGN_CYCLE,
+    columnVAlignLabel,
+    type PackLayoutConfig,
     type SymbolDraft,
     type SymbolSheetDoc,
 } from './SymbolDraft';
@@ -35,10 +45,9 @@ import { bootRemoteConsole } from '../debug/remoteConsoleBoot';
 
 const { ccclass } = _decorator;
 
-const STORE_PREFIX = 'symbolEditor.symbolSheet.';
 /** 预览墙：竖卡，默认每行数量；实际尺寸按可用区重算 */
 const PER_ROW = 5;
-const PROBE_VERSION = 5;
+const PROBE_VERSION = 7;
 
 @ccclass('SymbolEditorMain')
 export class SymbolEditorMain extends Component {
@@ -46,6 +55,7 @@ export class SymbolEditorMain extends Component {
     private hud: SymbolEditorHud | null = null;
     private pack: GamePackDef | null = null;
     private drafts: SymbolDraft[] = [];
+    private packLayout: PackLayoutConfig = normalizePackLayout(null);
     private selectedId: number | null = null;
     private wallCells = new Map<number, { node: Node; view: SymbolView; cellW: number; cellH: number; labelGap: number }>();
     private provider: DraftProvider | null = null;
@@ -67,12 +77,18 @@ export class SymbolEditorMain extends Component {
             this.pack = getGamePack(pack.id);
             await this.catalog.loadPack(this.pack);
             this.drafts = this.loadDrafts();
+            this.applyPackLayoutToCatalog();
+            this.persist(); // 旧草稿补上 packLayout，供 BoardEditor 共用
             this.provider = new DraftProvider(this.drafts, this.catalog);
             this.buildUi();
             this.rebuildWall();
             this.selectFirst();
-            this.hud?.setStatus(`符号编辑 · ${this.pack.id} · ${this.drafts.length} 个`);
-            console.log(`[SymbolEditorMain] ready pack=${this.pack.id} symbols=${this.drafts.length}`);
+            this.hud?.setStatus(
+                `符号编辑 · ${this.pack.id} · ${this.drafts.length} 个 · 格${this.packLayout.designW}×${this.packLayout.designH}`,
+            );
+            console.log(
+                `[SymbolEditorMain] ready pack=${this.pack.id} symbols=${this.drafts.length} layout=${JSON.stringify(this.packLayout)}`,
+            );
         } catch (e) {
             console.error('[SymbolEditorMain] load failed', e);
         }
@@ -124,6 +140,8 @@ export class SymbolEditorMain extends Component {
             onImport: () => void this.importSheet(),
             onOpenBoard: () => this.openBoard(),
             onPatchField: (key, dir) => this.patchField(key, dir),
+            onPatchPackLayout: (key, dir) => this.patchPackLayout(key, dir),
+            onTogglePackLayoutLock: (axis) => this.togglePackLayoutLock(axis),
             onPickAsset: (field, assetId) => this.pickAsset(field, assetId),
             onPickPackFx: (field, assetId) => this.pickPackFx(field, assetId),
             onPickVariantAsset: (index, assetId) => this.pickVariantAsset(index, assetId),
@@ -136,15 +154,60 @@ export class SymbolEditorMain extends Component {
             this.catalog.packWinCellFxAssetId(),
             this.catalog.packVanishCellFxAssetId(),
         );
+        this.hud?.setPackLayout(this.packLayout);
+    }
+
+    private applyPackLayoutToCatalog(): void {
+        this.catalog.applyPackLayout(this.packLayout);
+    }
+
+    private patchPackLayout(key: PackLayoutField, dir: 1 | -1): void {
+        const L = this.packLayout;
+        if (key === 'designW' || key === 'designH') {
+            L[key] = Math.max(32, L[key] + dir * 2);
+        } else if (key === 'boardColGap' || key === 'boardRowGap') {
+            L[key] = Math.max(-60, Math.min(60, L[key] + dir * 2));
+        } else if (key === 'winCellFxScale' || key === 'vanishCellFxScale') {
+            L[key] = Math.max(0.1, Math.round((L[key] + dir * 0.05) * 100) / 100);
+        } else if (key === 'columnVAlign') {
+            const i = Math.max(0, COLUMN_VALIGN_CYCLE.indexOf(L.columnVAlign));
+            L.columnVAlign = COLUMN_VALIGN_CYCLE[(i + dir + COLUMN_VALIGN_CYCLE.length) % COLUMN_VALIGN_CYCLE.length]!;
+        }
+        this.packLayout = normalizePackLayout(L);
+        this.applyPackLayoutToCatalog();
+        this.persist();
+        this.refreshPackFxHud();
+        const shown =
+            key === 'columnVAlign' ? columnVAlignLabel(this.packLayout.columnVAlign) : String(this.packLayout[key]);
+        this.hud?.setStatus(
+            `包布局 ${key}=${shown} · 格${this.packLayout.designW}×${this.packLayout.designH}`,
+        );
+    }
+
+    private togglePackLayoutLock(axis: 'col' | 'row'): void {
+        if (axis === 'col') this.packLayout.lockBoardColGap = !this.packLayout.lockBoardColGap;
+        else this.packLayout.lockBoardRowGap = !this.packLayout.lockBoardRowGap;
+        this.packLayout = normalizePackLayout(this.packLayout);
+        this.applyPackLayoutToCatalog();
+        this.persist();
+        this.refreshPackFxHud();
+        this.hud?.setStatus(
+            axis === 'col'
+                ? `列距${this.packLayout.lockBoardColGap ? '已锁定' : '可调'}`
+                : `行距${this.packLayout.lockBoardRowGap ? '已锁定' : '可调'}`,
+        );
     }
 
     private loadDrafts(): SymbolDraft[] {
         const packId = this.pack!.id;
         try {
-            const raw = localStorage.getItem(STORE_PREFIX + packId);
+            const raw = localStorage.getItem(SYMBOL_SHEET_STORE_PREFIX + packId);
             if (raw) {
                 const doc = parseSheet(raw);
                 if (doc.packId === packId && doc.symbols.length) {
+                    this.packLayout = doc.packLayout
+                        ? normalizePackLayout(doc.packLayout)
+                        : this.catalog.readPackLayout();
                     // 恢复包级通用 FX（若草稿里存过）
                     if (doc.winCellFxAssetId != null) {
                         this.catalog.setPackCellFx('win', doc.winCellFxAssetId);
@@ -205,6 +268,7 @@ export class SymbolEditorMain extends Component {
             /* ignore */
         }
         // 从 catalog 源表倒出草稿（保留 assetId；兼容旧包直接引用）
+        this.packLayout = this.catalog.readPackLayout();
         return this.catalog.getSourceEntries().map((e) => draftFromEntry(e));
     }
 
@@ -217,10 +281,11 @@ export class SymbolEditorMain extends Component {
             symbols: this.drafts,
             winCellFxAssetId: this.catalog.packWinCellFxAssetId(),
             vanishCellFxAssetId: this.catalog.packVanishCellFxAssetId(),
+            packLayout: this.packLayout,
             updatedAt: new Date().toISOString(),
         };
         try {
-            localStorage.setItem(STORE_PREFIX + this.pack.id, serializeSheet(doc, 0));
+            localStorage.setItem(SYMBOL_SHEET_STORE_PREFIX + this.pack.id, serializeSheet(doc, 0));
         } catch {
             /* ignore */
         }
@@ -279,6 +344,7 @@ export class SymbolEditorMain extends Component {
             const view = viewHost.addComponent(SymbolView);
             view.setup(this.provider, cellW - 6, cellH - 6, 0.9);
             view.setSymbol(d.id);
+            if (d.kind === SymbolKind.multi) view.setMultiplier(10);
             cell.addChild(viewHost);
 
             const lab = new Node('lab');
@@ -464,6 +530,8 @@ export class SymbolEditorMain extends Component {
         cell.view.setSymbol(null);
         cell.view.setSymbol(id);
         const d = this.drafts.find((x) => x.id === id);
+        if (d?.kind === SymbolKind.multi) cell.view.setMultiplier(10);
+        else cell.view.setMultiplier(null);
         const lab = cell.node.getChildByName('lab')?.getComponent(Label);
         if (lab && d) lab.string = `#${d.id} ${d.name}`;
     }
@@ -473,10 +541,31 @@ export class SymbolEditorMain extends Component {
         const cell = this.wallCells.get(this.selectedId);
         if (!cell) return;
         const view = cell.view;
+        const draft = this.draftSelected();
+        const isMulti = draft?.kind === SymbolKind.multi;
         try {
             if (kind === 'idle') {
                 view.setSymbol(null);
                 view.setSymbol(this.selectedId);
+                if (isMulti) view.setMultiplier(10);
+                return;
+            }
+            // multi 的「收集」试播：数字收集 + spine winAnim（默认 function）
+            if (kind === 'win' && isMulti) {
+                view.setMultiplier(10);
+                const spin = view.buildMultiSpinAnim();
+                const digit = view.buildMultiDigitCollectAnim();
+                if (!spin && !digit) {
+                    this.hud?.setStatus('无收集动画可播（配 winAnim / spine，默认 function）');
+                    return;
+                }
+                if (spin && digit) {
+                    await Promise.all([spin.play(), digit.play()]);
+                } else {
+                    await (spin ?? digit)!.play();
+                }
+                view.setMultiplier(10);
+                this.hud?.setStatus(`试播 收集 · ${draft?.winAnim || 'function'}`);
                 return;
             }
             const anim =
@@ -490,7 +579,10 @@ export class SymbolEditorMain extends Component {
                 return;
             }
             await anim.play();
-            if (kind === 'vanish') view.setSymbol(this.selectedId);
+            if (kind === 'vanish') {
+                view.setSymbol(this.selectedId);
+                if (isMulti) view.setMultiplier(10);
+            }
         } catch (e) {
             this.hud?.setStatus(`试播失败: ${(e as Error).message ?? e}`);
         }
@@ -503,6 +595,9 @@ export class SymbolEditorMain extends Component {
             packId: this.pack.id,
             zone: getActiveSpineZoneSync(),
             symbols: this.drafts,
+            winCellFxAssetId: this.catalog.packWinCellFxAssetId(),
+            vanishCellFxAssetId: this.catalog.packVanishCellFxAssetId(),
+            packLayout: this.packLayout,
             updatedAt: new Date().toISOString(),
         };
         const json = serializeSheet(doc);
@@ -514,7 +609,7 @@ export class SymbolEditorMain extends Component {
         a.click();
         URL.revokeObjectURL(url);
         this.persist();
-        this.hud?.setStatus('已导出 symbol-sheet JSON');
+        this.hud?.setStatus('已导出 symbol-sheet JSON（含 packLayout）');
     }
 
     private async importSheet(): Promise<void> {
@@ -522,11 +617,17 @@ export class SymbolEditorMain extends Component {
             const json = await pickJsonFile();
             const doc = parseSheet(json);
             this.drafts = doc.symbols;
+            if (doc.winCellFxAssetId != null) this.catalog.setPackCellFx('win', doc.winCellFxAssetId);
+            if (doc.vanishCellFxAssetId != null) this.catalog.setPackCellFx('vanish', doc.vanishCellFxAssetId);
+            this.packLayout = doc.packLayout
+                ? normalizePackLayout(doc.packLayout)
+                : this.catalog.readPackLayout();
+            this.applyPackLayoutToCatalog();
             this.provider?.sync(this.drafts);
             this.persist();
             this.rebuildWall();
             this.selectFirst();
-            this.hud?.setStatus(`已导入 ${this.drafts.length} 个符号`);
+            this.hud?.setStatus(`已导入 ${this.drafts.length} 个符号 · 格${this.packLayout.designW}×${this.packLayout.designH}`);
         } catch (e) {
             this.hud?.setStatus(`导入失败: ${(e as Error).message ?? e}`);
         }
@@ -545,6 +646,7 @@ export class SymbolEditorMain extends Component {
             this.pack = getGamePack(next.id);
             await this.catalog.loadPack(this.pack);
             this.drafts = this.loadDrafts();
+            this.applyPackLayoutToCatalog();
             this.provider = new DraftProvider(this.drafts, this.catalog);
             const packs = listActiveGamePacks();
             const i = Math.max(0, packs.findIndex((p) => p.id === next.id)) + 1;

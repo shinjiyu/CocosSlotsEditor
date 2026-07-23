@@ -81,6 +81,17 @@ function emptyCellFx() {
     };
 }
 
+function cellFxFromEffect(uuid, anim, front, scale) {
+    const fx = emptyCellFx();
+    if (uuid) {
+        fx.spine = { __uuid__: uuid, __expectedType__: 'sp.SkeletonData' };
+        fx.anim = anim || 'play';
+        fx.front = front !== false;
+        if (typeof scale === 'number') fx.scale = scale;
+    }
+    return fx;
+}
+
 function ensureMeta(prefabPath, syncNodeName) {
     const metaPath = `${prefabPath}.meta`;
     if (fs.existsSync(metaPath)) return;
@@ -115,6 +126,22 @@ function main() {
             entry.texture = { __uuid__: uuid, __expectedType__: 'cc.SpriteFrame' };
             assetsById.set(sym.textureId, entry);
         }
+    }
+
+    /** @type {{ win?: { uuid: string, anim: string, front: boolean }, vanish?: { uuid: string, anim: string, front: boolean } }} */
+    const packFx = {};
+    for (const fx of manifest.effects || []) {
+        const jsonPath = path.join(PACK, fx.dir, fx.file);
+        const uuid = spineUuid(jsonPath);
+        const entry = assetEntryBase(fx.id, fx.name || fx.id, 5);
+        entry.spine = { __uuid__: uuid, __expectedType__: 'sp.SkeletonData' };
+        entry.defaultAnim = fx.defaultAnim || 'play';
+        entry.effectFront = fx.front !== false;
+        entry.effectScale =
+            typeof fx.effectScale === 'number' ? fx.effectScale : manifest.cellFxScale ?? 0.75;
+        assetsById.set(fx.id, entry);
+        const slot = fx.role === 'vanish' ? 'vanish' : 'win';
+        packFx[slot] = { uuid, anim: entry.defaultAnim, front: entry.effectFront };
     }
 
     const assetEntries = [...assetsById.values()].sort((a, b) => a.id.localeCompare(b.id));
@@ -215,8 +242,12 @@ function main() {
         _enabled: true,
         __prefab: null,
         symbols: manifest.symbols.map((_, i) => ({ __id__: entryStart + i })),
-        symbolWidth: manifest.designW || 152,
-        symbolHeight: manifest.designH || 128,
+        symbolWidth: manifest.designW || 116,
+        symbolHeight: manifest.designH || 96,
+        boardColGap: manifest.boardColGap ?? 0,
+        boardRowGap: manifest.boardRowGap ?? 0,
+        lockBoardColGap: true,
+        lockBoardRowGap: true,
         winCellFx: { __id__: globalWinFxId },
         vanishCellFx: { __id__: globalVanishFxId },
         multiDigitFont: null,
@@ -225,8 +256,13 @@ function main() {
         expandSplitBAnim: 'split_B',
         _id: '',
     });
-    symbolNodes.push(emptyCellFx()); // 3
-    symbolNodes.push(emptyCellFx()); // 4
+    const fxScale = manifest.cellFxScale ?? 0.75;
+    symbolNodes.push(
+        cellFxFromEffect(packFx.win?.uuid, packFx.win?.anim, packFx.win?.front, fxScale),
+    ); // 3 global win
+    symbolNodes.push(
+        cellFxFromEffect(packFx.vanish?.uuid, packFx.vanish?.anim, packFx.vanish?.front, fxScale),
+    ); // 4 global vanish
 
     for (let i = 0; i < n; i++) {
         symbolNodes.push(emptyCellFx());
@@ -278,6 +314,9 @@ function main() {
     ensureMeta(SYMBOL_LIB, 'symbol-library');
 
     console.log(`[build-power-of-thor2] assets=${assetEntries.length} symbols=${n}`);
+    console.log(
+        `[build-power-of-thor2] packFx win=${packFx.win ? 'yes' : 'no'} vanish=${packFx.vanish ? 'yes' : 'no'}`,
+    );
     console.log(`[build-power-of-thor2] wrote ${path.relative(ROOT, ASSET_LIB)}`);
     console.log(`[build-power-of-thor2] wrote ${path.relative(ROOT, SYMBOL_LIB)}`);
 }

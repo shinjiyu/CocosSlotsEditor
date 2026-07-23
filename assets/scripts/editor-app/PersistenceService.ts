@@ -71,6 +71,21 @@ export class PersistenceService {
         sys.localStorage.removeItem(KEY_PREFIX + docId);
     }
 
+    /** 清除所有盘面自动存档（种子迁移 / 强制种子时用） */
+    clearAllDocAutosaves(): void {
+        try {
+            const store = sys.localStorage;
+            const keys: string[] = [];
+            for (let i = 0; i < store.length; i++) {
+                const k = store.key(i);
+                if (k && k.startsWith(KEY_PREFIX)) keys.push(k);
+            }
+            for (const k of keys) store.removeItem(k);
+        } catch (e) {
+            console.warn('[Persistence] clearAllDocAutosaves failed', e);
+        }
+    }
+
     /** 浏览器下载导出；嵌入模式下改为通知 parent 写回 */
     exportDownload(doc: EditorDoc): void {
         if (this.aiwsEmbed) {
