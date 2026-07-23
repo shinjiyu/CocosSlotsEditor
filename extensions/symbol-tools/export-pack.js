@@ -17,8 +17,11 @@ const fs = require('fs');
  * 编辑器专属（EditorHud / BoardEditorMain / PersistenceService）不随包。
  */
 const RUNTIME_SCRIPTS = [
+    'assets/scripts/editor-app/AssetDefs.ts',
+    'assets/scripts/editor-app/AssetLibrary.ts',
     'assets/scripts/editor-app/SymbolDefs.ts',
     'assets/scripts/editor-app/SymbolLibrary.ts',
+    'assets/scripts/editor-app/SymbolResolve.ts',
     'assets/scripts/editor-app/SymbolView.ts',
     'assets/scripts/editor-app/SymbolTemplate.ts',
     'assets/scripts/editor-app/SymbolCatalog.ts',
@@ -103,6 +106,85 @@ function resolveLibraryPrefab(projectRoot, packId) {
     throw new Error(
         '找不到 symbol-library.prefab（期望 assets/resources/spine-*/packs/<packId>/ 或旧 games/）',
     );
+}
+
+/** 同目录 asset-library.prefab（新包契约；可缺省） */
+function resolveAssetLibraryPrefab(symbolLibraryPrefab) {
+    const sibling = path.join(path.dirname(symbolLibraryPrefab), 'asset-library.prefab');
+    return fs.existsSync(sibling) ? sibling : null;
+}
+
+/**
+ * 按 kept 符号的 *AssetId + 包级 FX id 裁剪 asset-library。
+ * @param {any[]} objs
+ * @param {Set<string>} keepAssetIds
+ */
+function pruneAssetLibraryPrefab(objs, keepAssetIds) {
+    const lib = objs.find((o) => o && Array.isArray(o.assets));
+    if (!lib) return { objs, keptIds: [], droppedIds: [] };
+    const kept = [];
+    const dropped = [];
+    for (const ref of lib.assets || []) {
+        const entry = objs[ref.__id__];
+        if (!entry || !entry.id) continue;
+        if (keepAssetIds.has(entry.id)) kept.push({ ref, entry });
+        else dropped.push(entry.id);
+    }
+    const out = [];
+    out.push(JSON.parse(JSON.stringify(objs[0]))); // Prefab
+    const nodeCopy = JSON.parse(JSON.stringify(objs[1]));
+    out.push(nodeCopy);
+    const libCopy = JSON.parse(JSON.stringify(lib));
+    libCopy.assets = [];
+    out.push(libCopy);
+    nodeCopy._components = [{ __id__: 2 }];
+    for (const k of kept) {
+        const id = out.length;
+        out.push(JSON.parse(JSON.stringify(k.entry)));
+        libCopy.assets.push({ __id__: id });
+    }
+    const prefabInfo = objs.find((o) => o && o.__type__ === 'cc.PrefabInfo');
+    if (prefabInfo) {
+        const pi = JSON.parse(JSON.stringify(prefabInfo));
+        pi.root = { __id__: 1 };
+        pi.asset = { __id__: 0 };
+        const piId = out.length;
+        out.push(pi);
+        out[1]._prefab = { __id__: piId };
+    }
+    return {
+        objs: out,
+        keptIds: kept.map((k) => k.entry.id),
+        droppedIds: dropped,
+    };
+}
+
+/** 从符号库条目收集素材 id（含 visualVariants） */
+function collectAssetIdsFromSymbolLibrary(objs, usedSet) {
+    const ids = new Set();
+    for (const o of objs) {
+        if (!o || o.__type__ !== 'SymbolEntry') continue;
+        if (usedSet && usedSet.size && !usedSet.has(Number(o.id))) continue;
+        for (const key of [
+            'textureAssetId',
+            'spineAssetId',
+            'prefabAssetId',
+            'enterSoundAssetId',
+            'winSoundAssetId',
+            'vanishSoundAssetId',
+            'digitFontAssetId',
+            'winCellFxAssetId',
+            'vanishCellFxAssetId',
+        ]) {
+            if (o[key]) ids.add(String(o[key]));
+        }
+        for (const v of o.visualVariants || []) {
+            if (v?.textureAssetId) ids.add(String(v.textureAssetId));
+            if (v?.spineAssetId) ids.add(String(v.spineAssetId));
+            if (v?.prefabAssetId) ids.add(String(v.prefabAssetId));
+        }
+    }
+    return ids;
 }
 
 function inferGameId(rootPrefab, projectRoot) {
@@ -325,8 +407,14 @@ async function exportPack(opts = {}) {
 
     const gameId = opts.gameId || process.env.SYMBOL_GAME_ID || '';
     const rootPrefab = resolveLibraryPrefab(projectRoot, gameId);
+    const rootAssetLib = resolveAssetLibraryPrefab(rootPrefab);
     const resolvedGameId = gameId || inferGameId(rootPrefab, projectRoot);
     console.log(`[export-pack] library = ${path.relative(projectRoot, rootPrefab)}`);
+    if (rootAssetLib) {
+        console.log(`[export-pack] asset-library = ${path.relative(projectRoot, rootAssetLib)}`);
+    } else {
+        warnings.push('同目录无 asset-library.prefab（旧包直引模式）');
+    }
 
     /** @type {number[]} */
     let usedSymbolIds = Array.isArray(opts.usedSymbolIds)
@@ -356,9 +444,13 @@ async function exportPack(opts = {}) {
     }
 
     let seedPrefab = rootPrefab;
+    let seedAssetLib = rootAssetLib;
     let keptIds = [];
     let droppedIds = [];
     let prunedRel = '';
+    let assetLibRelInPack = rootAssetLib
+        ? path.relative(projectRoot, rootAssetLib).replace(/\\/g, '/')
+        : '';
 
     if (usedOnly) {
         if (!usedSymbolIds.length) {
@@ -378,11 +470,35 @@ async function exportPack(opts = {}) {
         console.log(
             `[export-pack] prune kept=[${keptIds.join(',')}] dropped=[${droppedIds.join(',')}]`,
         );
+
+        // 同步裁剪 asset-library：只留 kept 符号引用的素材 id
+        if (rootAssetLib) {
+            const keepAssetIds = collectAssetIdsFromSymbolLibrary(
+                pruned.objs,
+                new Set(keptIds),
+            );
+            // 包级 FX / 字体等也可能只在 AssetLibrary 登记：保留所有 effect 与被引用项
+            const assetObjs = JSON.parse(fs.readFileSync(rootAssetLib, 'utf8'));
+            for (const o of assetObjs) {
+                if (o && o.__type__ === 'AssetEntry' && o.kind === 5) keepAssetIds.add(o.id);
+            }
+            const prunedAssets = pruneAssetLibraryPrefab(assetObjs, keepAssetIds);
+            seedAssetLib = path.join(pruneDir, 'asset-library.pruned.prefab');
+            fs.writeFileSync(
+                seedAssetLib,
+                `${JSON.stringify(prunedAssets.objs, null, 2)}\n`,
+                'utf8',
+            );
+            console.log(
+                `[export-pack] asset-library prune kept=${prunedAssets.keptIds.length} dropped=${prunedAssets.droppedIds.length}`,
+            );
+        }
     }
 
-    // Dependency closure from seed prefab
+    // Dependency closure from seed prefab(s)
     const visitedUuids = new Set();
     const queue = [seedPrefab];
+    if (seedAssetLib) queue.push(seedAssetLib);
     const libraryRelInPack = path
         .relative(projectRoot, rootPrefab)
         .replace(/\\/g, '/');
@@ -398,6 +514,14 @@ async function exportPack(opts = {}) {
             if (fs.existsSync(srcMeta)) fs.copyFileSync(srcMeta, `${dstLib}.meta`);
             copied.add(libraryRelInPack);
             assetRels.push(libraryRelInPack);
+        } else if (file === seedAssetLib && usedOnly && assetLibRelInPack) {
+            const dstLib = path.join(outRoot, assetLibRelInPack);
+            fs.mkdirSync(path.dirname(dstLib), { recursive: true });
+            fs.copyFileSync(seedAssetLib, dstLib);
+            const srcMeta = `${rootAssetLib}.meta`;
+            if (fs.existsSync(srcMeta)) fs.copyFileSync(srcMeta, `${dstLib}.meta`);
+            copied.add(assetLibRelInPack);
+            assetRels.push(assetLibRelInPack);
         } else {
             copyFileWithMeta(file);
         }
@@ -466,6 +590,7 @@ async function exportPack(opts = {}) {
         exportedAt: new Date().toISOString(),
         gameId: resolvedGameId,
         libraryRel: libraryRelInPack,
+        assetLibraryRel: assetLibRelInPack || undefined,
         usedOnly,
         usedSymbolIds: usedOnly ? keptIds : usedSymbolIds,
         droppedSymbolIds: droppedIds,
@@ -501,7 +626,7 @@ async function exportPack(opts = {}) {
             '',
             '1. 合并 `assets/` 到目标 Cocos 工程。',
             '2. Creator 打开目标工程等待导入。',
-            '3. BoardStage / SymbolCatalog 指向库 prefab。',
+            '3. BoardStage：拖入 symbol-library + asset-library（同包）；旧包可只拖符号库。',
         ]
             .filter(Boolean)
             .join('\n'),
@@ -513,6 +638,7 @@ async function exportPack(opts = {}) {
         outRel,
         gameId: resolvedGameId,
         libraryRel: libraryRelInPack,
+        assetLibraryRel: assetLibRelInPack || undefined,
         usedOnly,
         usedSymbolIds: usedOnly ? keptIds : usedSymbolIds,
         droppedSymbolIds: droppedIds,

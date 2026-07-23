@@ -165,14 +165,8 @@
     "id": 1,
     "name": "s1",
     "kind": 0,
-    "texture": {
-      "__uuid__": "2943a93b-a2fc-42f8-85a2-855f3437ce0c@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "1c8d1d88-e2a8-4c2e-ab06-bf3739e2ff52",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -189,7 +183,21 @@
     },
     "vanishCellFx": {
       "__id__": 6
-    }
+    },
+    "textureAssetId": "tex_seth_01_s1",
+    "spineAssetId": "spine_seth_01_s1",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -224,14 +232,8 @@
     "id": 2,
     "name": "s2",
     "kind": 0,
-    "texture": {
-      "__uuid__": "19d46ade-8ab0-4ea2-9d9f-53cee827f9a7@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "e3c32ce1-5f2c-497c-af6a-3e28d396758d",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -248,7 +250,21 @@
     },
     "vanishCellFx": {
       "__id__": 9
-    }
+    },
+    "textureAssetId": "tex_seth_02_s2",
+    "spineAssetId": "spine_seth_02_s2",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -283,14 +299,8 @@
     "id": 3,
     "name": "s3",
     "kind": 0,
-    "texture": {
-      "__uuid__": "22a3eddc-5d35-4d6d-83fb-d42df42a4995@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "b9d03ce2-13ed-4242-9695-b00ce206df56",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -307,7 +317,21 @@
     },
     "vanishCellFx": {
       "__id__": 12
-    }
+    },
+    "textureAssetId": "tex_seth_03_s3",
+    "spineAssetId": "spine_seth_03_s3",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -342,14 +366,8 @@
     "id": 4,
     "name": "s4",
     "kind": 0,
-    "texture": {
-      "__uuid__": "64a5a3ad-0204-40a3-9773-0c550a084f69@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "0ccb94f6-315c-47a9-82f2-d05bd58e0c1f",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -366,7 +384,21 @@
     },
     "vanishCellFx": {
       "__id__": 15
-    }
+    },
+    "textureAssetId": "tex_seth_04_s4",
+    "spineAssetId": "spine_seth_04_s4",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -401,14 +433,8 @@
     "id": 5,
     "name": "s5",
     "kind": 0,
-    "texture": {
-      "__uuid__": "2d8602ab-b908-49c4-8814-444c9653a139@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "7b7ffc32-ba53-479d-9ded-531509957ef5",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -425,7 +451,21 @@
     },
     "vanishCellFx": {
       "__id__": 18
-    }
+    },
+    "textureAssetId": "tex_seth_05_s5",
+    "spineAssetId": "spine_seth_05_s5",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -460,14 +500,8 @@
     "id": 6,
     "name": "s6",
     "kind": 0,
-    "texture": {
-      "__uuid__": "6458c993-e54c-482f-ba56-cc937a487d27@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "3c4d6715-285d-4b36-a25d-1fc26e60cfdd",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -484,7 +518,21 @@
     },
     "vanishCellFx": {
       "__id__": 21
-    }
+    },
+    "textureAssetId": "tex_seth_06_s6",
+    "spineAssetId": "spine_seth_06_s6",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -519,14 +567,8 @@
     "id": 7,
     "name": "s7",
     "kind": 0,
-    "texture": {
-      "__uuid__": "2897965f-47df-4217-ad97-26c8dfd2ea5d@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "8dbe748c-3ede-4ee9-88b5-c61c55cb2d38",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -543,7 +585,21 @@
     },
     "vanishCellFx": {
       "__id__": 24
-    }
+    },
+    "textureAssetId": "tex_seth_07_s7",
+    "spineAssetId": "spine_seth_07_s7",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -578,14 +634,8 @@
     "id": 8,
     "name": "s8",
     "kind": 0,
-    "texture": {
-      "__uuid__": "d6146242-5b4d-4272-8f46-7aa6456ace2e@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "5e90e2cd-4fdf-4cea-8e1c-a157aa11da31",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -602,7 +652,21 @@
     },
     "vanishCellFx": {
       "__id__": 27
-    }
+    },
+    "textureAssetId": "tex_seth_08_s8",
+    "spineAssetId": "spine_seth_08_s8",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -637,14 +701,8 @@
     "id": 9,
     "name": "s9",
     "kind": 0,
-    "texture": {
-      "__uuid__": "9fc3ad47-a03a-49c7-998f-4a75ac8e2945@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "b4218553-4802-4b15-b735-d8307d479aad",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -661,7 +719,21 @@
     },
     "vanishCellFx": {
       "__id__": 30
-    }
+    },
+    "textureAssetId": "tex_seth_09_s9",
+    "spineAssetId": "spine_seth_09_s9",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -696,10 +768,7 @@
     "id": 10,
     "name": "pattern1",
     "kind": 0,
-    "texture": {
-      "__uuid__": "dfe75699-8ff5-42de-990c-116285617c7e@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
+    "texture": null,
     "spine": null,
     "prefab": null,
     "idleAnim": "",
@@ -717,7 +786,21 @@
     },
     "vanishCellFx": {
       "__id__": 33
-    }
+    },
+    "textureAssetId": "tex_seth_10_pattern1",
+    "spineAssetId": "",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -752,10 +835,7 @@
     "id": 11,
     "name": "pattern2",
     "kind": 0,
-    "texture": {
-      "__uuid__": "836074bd-ea10-4c05-b837-be999c08c6ef@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
+    "texture": null,
     "spine": null,
     "prefab": null,
     "idleAnim": "",
@@ -773,7 +853,21 @@
     },
     "vanishCellFx": {
       "__id__": 36
-    }
+    },
+    "textureAssetId": "tex_seth_11_pattern2",
+    "spineAssetId": "",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -808,14 +902,8 @@
     "id": 12,
     "name": "scatter2",
     "kind": 0,
-    "texture": {
-      "__uuid__": "3fd2c12c-16eb-4100-8c38-44d4cb4fb12b@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "a9adfa0e-2f7a-4253-984d-0e7379b8f290",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "loop",
     "enterAnim": "in",
@@ -832,7 +920,21 @@
     },
     "vanishCellFx": {
       "__id__": 39
-    }
+    },
+    "textureAssetId": "tex_seth_12_scatter2",
+    "spineAssetId": "spine_seth_12_scatter2",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -867,14 +969,8 @@
     "id": 13,
     "name": "scatter1",
     "kind": 0,
-    "texture": {
-      "__uuid__": "798c70ad-6e61-4b2f-b9ab-74252f4c125e@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "2f4dff19-d146-42f6-bfde-2e60e3124304",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "loop",
     "enterAnim": "in",
@@ -891,7 +987,21 @@
     },
     "vanishCellFx": {
       "__id__": 42
-    }
+    },
+    "textureAssetId": "tex_seth_13_scatter1",
+    "spineAssetId": "spine_seth_13_scatter1",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -926,14 +1036,8 @@
     "id": 20,
     "name": "multi_10",
     "kind": 1,
-    "texture": {
-      "__uuid__": "c5169554-e10a-4b46-9a6f-9e7139a8ee3e@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "92002106-15d0-4c84-bab3-0bba32e5801c",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -950,7 +1054,21 @@
     },
     "vanishCellFx": {
       "__id__": 45
-    }
+    },
+    "textureAssetId": "tex_seth_20_multi_10",
+    "spineAssetId": "spine_seth_20_multi_10",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -985,14 +1103,8 @@
     "id": 21,
     "name": "multi_10_01",
     "kind": 1,
-    "texture": {
-      "__uuid__": "83846343-f9a6-42be-addc-ebb718e2da74@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "740a5c56-5b68-4b37-b516-8c36f1aa72d8",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1009,7 +1121,21 @@
     },
     "vanishCellFx": {
       "__id__": 48
-    }
+    },
+    "textureAssetId": "tex_seth_21_multi_10_01",
+    "spineAssetId": "spine_seth_21_multi_10_01",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1044,14 +1170,8 @@
     "id": 22,
     "name": "multi_11",
     "kind": 1,
-    "texture": {
-      "__uuid__": "91d3fa79-68da-439c-88b8-0f975f3227f5@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "de81df87-c099-46f4-b222-f0a8caa300b2",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1068,7 +1188,21 @@
     },
     "vanishCellFx": {
       "__id__": 51
-    }
+    },
+    "textureAssetId": "tex_seth_22_multi_11",
+    "spineAssetId": "spine_seth_22_multi_11",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1103,14 +1237,8 @@
     "id": 23,
     "name": "multi_11_01",
     "kind": 1,
-    "texture": {
-      "__uuid__": "5158ec85-6157-49f7-b770-47ade47b21c7@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "2aa590a7-0b76-42dd-b3f7-f2f4f75624b2",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1127,7 +1255,21 @@
     },
     "vanishCellFx": {
       "__id__": 54
-    }
+    },
+    "textureAssetId": "tex_seth_23_multi_11_01",
+    "spineAssetId": "spine_seth_23_multi_11_01",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1162,14 +1304,8 @@
     "id": 24,
     "name": "multi_12",
     "kind": 1,
-    "texture": {
-      "__uuid__": "892f8614-a586-401b-9376-2ef845b3c293@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "82e86091-debe-43a0-868c-b6a21651686a",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1186,7 +1322,21 @@
     },
     "vanishCellFx": {
       "__id__": 57
-    }
+    },
+    "textureAssetId": "tex_seth_24_multi_12",
+    "spineAssetId": "spine_seth_24_multi_12",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1221,14 +1371,8 @@
     "id": 25,
     "name": "multi_12_01",
     "kind": 1,
-    "texture": {
-      "__uuid__": "a54e7b94-2c7a-416f-8f6c-710745fec270@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "1885dffb-9012-4100-95ac-46cdc8234ca5",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1245,7 +1389,21 @@
     },
     "vanishCellFx": {
       "__id__": 60
-    }
+    },
+    "textureAssetId": "tex_seth_25_multi_12_01",
+    "spineAssetId": "spine_seth_25_multi_12_01",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1280,14 +1438,8 @@
     "id": 26,
     "name": "multi_13",
     "kind": 1,
-    "texture": {
-      "__uuid__": "d297869a-9cf8-4198-9623-0c13b1cddefb@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "ca940784-5759-42b2-a938-00ff7e83809c",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1304,7 +1456,21 @@
     },
     "vanishCellFx": {
       "__id__": 63
-    }
+    },
+    "textureAssetId": "tex_seth_26_multi_13",
+    "spineAssetId": "spine_seth_26_multi_13",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",
@@ -1339,14 +1505,8 @@
     "id": 27,
     "name": "multi_13_01",
     "kind": 1,
-    "texture": {
-      "__uuid__": "b59eb668-5dcf-42bf-90d1-be76632ceb96@f9941",
-      "__expectedType__": "cc.SpriteFrame"
-    },
-    "spine": {
-      "__uuid__": "98783e8b-e30e-4802-840a-93cb4577ab4d",
-      "__expectedType__": "sp.SkeletonData"
-    },
+    "texture": null,
+    "spine": null,
     "prefab": null,
     "idleAnim": "",
     "enterAnim": "",
@@ -1363,7 +1523,21 @@
     },
     "vanishCellFx": {
       "__id__": 66
-    }
+    },
+    "textureAssetId": "tex_seth_27_multi_13_01",
+    "spineAssetId": "spine_seth_27_multi_13_01",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "font_seth_countup_01",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": ""
   },
   {
     "__type__": "CellFxDef",

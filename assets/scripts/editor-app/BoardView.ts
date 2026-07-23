@@ -162,6 +162,12 @@ export class BoardView extends Component {
         return this.symbolViews[col]?.[row] ?? null;
     }
 
+    /** 间距/格尺寸变了但拓扑未变时，强制下一帧 render 重建网格 */
+    invalidateLayout(): void {
+        this.currentCols = -1;
+        this.currentVisibleRows = [];
+    }
+
     render(state: PresentationState, opts?: { suppressMultiDigits?: boolean }): void {
         const { cols, visibleRows } = state.board.topology;
         const sameTopo =
@@ -231,11 +237,12 @@ export class BoardView extends Component {
         // 主盘始终显示全部 visibleRows（含顶条映射的 row0）；顶条是同格镜像编辑入口
         view.node.active = true;
         const columnCount = this.currentVisibleRows[col] ?? null;
-        const tier = columnCount != null ? columnCountToTier(columnCount) : null;
+        const tier =
+            this.layoutProfile && columnCount != null ? columnCountToTier(columnCount) : null;
         const cellH = this.cellHeights[col]?.[row] ?? this.cellPixelHeight(columnCount ?? 0);
         // 列占满符号由 applyColumnSpanVisual 统一画；此处先占位
         const entry = symbolId != null ? this.catalog?.getEntry(symbolId) : null;
-        if (isColumnFillEntry(entry) || this.isLegacyBonusId(symbolId)) {
+        if (isColumnFillEntry(entry)) {
             view.setVariantKey(null);
             view.setSymbol(null);
             view.setMultiplier(null);
@@ -244,23 +251,13 @@ export class BoardView extends Component {
         view.setVariantKey(null);
         view.setPixelPerfect(true);
         if (this.catalog) view.setup(this.catalog, this.cellW, cellH, 1);
-        view.setColumnContext(columnCount, tier);
+        view.setColumnContext(this.layoutProfile ? columnCount : null, tier);
         view.setSymbol(symbolId);
         view.setMultiplier(multiplier);
     }
 
-    /** 未挂 placement 的旧包：仍认 profile.roles.bonus */
-    private isLegacyBonusId(symbolId: number | null | undefined): boolean {
-        if (symbolId == null || !this.layoutProfile) return false;
-        const entry = this.catalog?.getEntry(symbolId);
-        if (entry && (entry.placementMainId || '').trim()) return false;
-        return symbolId === this.layoutProfile.roles.bonus;
-    }
-
     private isColumnFillId = (symbolId: number): boolean => {
-        const entry = this.catalog?.getEntry(symbolId);
-        if (isColumnFillEntry(entry)) return true;
-        return this.isLegacyBonusId(symbolId);
+        return isColumnFillEntry(this.catalog?.getEntry(symbolId));
     };
 
     /**
@@ -387,6 +384,8 @@ export class BoardView extends Component {
     }
 
     private cellPixelHeight(columnCount: number): number {
+        // 仅吕布类 profile 才按列符号数取档高；赛特等固定盘面用 catalog.designH
+        if (!this.layoutProfile) return this.cellH;
         return cellDesignHeightForColumn(columnCount) ?? this.cellH;
     }
 
@@ -451,7 +450,7 @@ export class BoardView extends Component {
             const colHeights: number[] = [];
             const columnCount = visibleRows[c]!;
             const cellH = this.cellPixelHeight(columnCount);
-            const tier = columnCountToTier(columnCount);
+            const tier = this.layoutProfile ? columnCountToTier(columnCount) : null;
             for (let r = 0; r < columnCount; r++) {
                 const n = new Node(`cell_${c}_${r}`);
                 // 设计框尺寸；符号可超框画出
@@ -462,7 +461,7 @@ export class BoardView extends Component {
                     view.setup(this.catalog, this.cellW, cellH, 1);
                     view.setPixelPerfect(true);
                 }
-                view.setColumnContext(columnCount, tier);
+                view.setColumnContext(this.layoutProfile ? columnCount : null, tier);
                 n.setPosition(this.cellPosition(c, r));
                 this.node.addChild(n);
                 colNodes.push(n);

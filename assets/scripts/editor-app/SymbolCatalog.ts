@@ -13,7 +13,8 @@ import type { CellFxDef, DissolveFxConfig, SymbolEntry, SymbolProvider } from '.
 import { SymbolLibrary } from './SymbolLibrary';
 import { AssetLibrary } from './AssetLibrary';
 import type { AssetProvider } from './AssetDefs';
-import { resolveSymbolEntryCopy } from './SymbolResolve';
+import { resolveSymbolEntryCopy, applyEffectAsset, matchCellFxAssetId } from './SymbolResolve';
+import { AssetKind } from './AssetDefs';
 import {
     DEFAULT_GAME_ID,
     assertPackLibraryPath,
@@ -79,6 +80,36 @@ export class SymbolCatalog implements SymbolProvider {
         const e = this.getEntry(id);
         if (e?.vanishCellFx?.valid) return e.vanishCellFx;
         return this.lib?.vanishCellFx.valid ? this.lib.vanishCellFx : null;
+    }
+
+    /** 包级通用中奖/消除特效当前绑定的素材 id（供编辑器展示） */
+    packWinCellFxAssetId(): string {
+        return matchCellFxAssetId(this.lib?.winCellFx, this.assets);
+    }
+
+    packVanishCellFxAssetId(): string {
+        return matchCellFxAssetId(this.lib?.vanishCellFx, this.assets);
+    }
+
+    /** 设置包级通用格子特效；空 id = 清除 */
+    setPackCellFx(which: 'win' | 'vanish', assetId: string): void {
+        if (!this.lib) return;
+        const fx = which === 'win' ? this.lib.winCellFx : this.lib.vanishCellFx;
+        if (!this.assets) {
+            if (!assetId) {
+                fx.spine = null;
+                fx.anim = '';
+            }
+            return;
+        }
+        applyEffectAsset(fx, assetId, this.assets, { forceAnim: true });
+        // spine 类素材若无 defaultAnim，给个合理缺省
+        if (assetId && !fx.anim) {
+            const a = this.assets.getAsset(assetId);
+            if (a?.kind === AssetKind.spine || a?.kind === AssetKind.effect) {
+                fx.anim = which === 'win' ? 'win' : 'out';
+            }
+        }
     }
 
     vanishDissolveFor(id: number): DissolveFxConfig | null {

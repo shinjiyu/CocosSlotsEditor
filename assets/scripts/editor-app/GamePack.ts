@@ -35,6 +35,11 @@ export const SYMBOL_PACKS: readonly SymbolPackDef[] = [
         zone: 'spine-3.8',
     },
     {
+        id: 'power-of-thor2',
+        name: 'Power of Thor 2',
+        zone: 'spine-3.8',
+    },
+    {
         id: 'lvbu',
         name: 'LvBu (ways-6x7)',
         zone: 'spine-4.2',

@@ -7,7 +7,7 @@ import { _decorator, Component, Node, UITransform, Color, Graphics, Label, direc
 import { SymbolCatalog } from './SymbolCatalog';
 import { SymbolView } from './SymbolView';
 import { SymbolEditorHud } from './SymbolEditorHud';
-import type { SymbolAssetField, SymbolHudCallbacks } from './SymbolEditorHud';
+import type { SymbolAssetField, SymbolHudCallbacks, PackFxField } from './SymbolEditorHud';
 import {
     draftFromEntry,
     makeEmptyDraft,
@@ -38,7 +38,7 @@ const { ccclass } = _decorator;
 const STORE_PREFIX = 'symbolEditor.symbolSheet.';
 /** 预览墙：竖卡，默认每行数量；实际尺寸按可用区重算 */
 const PER_ROW = 5;
-const PROBE_VERSION = 4;
+const PROBE_VERSION = 5;
 
 @ccclass('SymbolEditorMain')
 export class SymbolEditorMain extends Component {
@@ -125,9 +125,17 @@ export class SymbolEditorMain extends Component {
             onOpenBoard: () => this.openBoard(),
             onPatchField: (key, dir) => this.patchField(key, dir),
             onPickAsset: (field, assetId) => this.pickAsset(field, assetId),
+            onPickPackFx: (field, assetId) => this.pickPackFx(field, assetId),
             onPickVariantAsset: (index, assetId) => this.pickVariantAsset(index, assetId),
             onPreviewAnim: (kind) => void this.previewAnim(kind),
         };
+    }
+
+    private refreshPackFxHud(): void {
+        this.hud?.setPackFx(
+            this.catalog.packWinCellFxAssetId(),
+            this.catalog.packVanishCellFxAssetId(),
+        );
     }
 
     private loadDrafts(): SymbolDraft[] {
@@ -137,6 +145,13 @@ export class SymbolEditorMain extends Component {
             if (raw) {
                 const doc = parseSheet(raw);
                 if (doc.packId === packId && doc.symbols.length) {
+                    // 恢复包级通用 FX（若草稿里存过）
+                    if (doc.winCellFxAssetId != null) {
+                        this.catalog.setPackCellFx('win', doc.winCellFxAssetId);
+                    }
+                    if (doc.vanishCellFxAssetId != null) {
+                        this.catalog.setPackCellFx('vanish', doc.vanishCellFxAssetId);
+                    }
                     // 旧本地草稿没有 visualVariants：从新版包定义补齐一次，保留用户其它字段。
                     const sourceById = new Map(
                         this.catalog.getSourceEntries().map((entry) => [entry.id, draftFromEntry(entry)]),
@@ -200,6 +215,8 @@ export class SymbolEditorMain extends Component {
             packId: this.pack.id,
             zone: getActiveSpineZoneSync(),
             symbols: this.drafts,
+            winCellFxAssetId: this.catalog.packWinCellFxAssetId(),
+            vanishCellFxAssetId: this.catalog.packVanishCellFxAssetId(),
             updatedAt: new Date().toISOString(),
         };
         try {
@@ -286,6 +303,7 @@ export class SymbolEditorMain extends Component {
     }
 
     private selectFirst(): void {
+        this.refreshPackFxHud();
         if (this.drafts.length) this.selectSymbol(this.drafts[0]!.id);
         else {
             this.selectedId = null;
@@ -296,6 +314,7 @@ export class SymbolEditorMain extends Component {
     private selectSymbol(id: number): void {
         this.selectedId = id;
         const draft = this.drafts.find((d) => d.id === this.selectedId) ?? null;
+        this.refreshPackFxHud();
         this.hud?.setSelected(this.selectedId, draft, this.assets());
         this.refreshSelectionChrome();
     }
@@ -393,9 +412,23 @@ export class SymbolEditorMain extends Component {
         this.provider?.sync(this.drafts);
         this.persist();
         this.refreshCell(d.id);
+        this.refreshPackFxHud();
         this.hud?.setSelected(d.id, d, this.assets());
         const label = assetId || '(无)';
         this.hud?.setStatus(`${d.name} ${field} → ${label}`);
+    }
+
+    private pickPackFx(field: PackFxField, assetId: string): void {
+        this.catalog.setPackCellFx(field, assetId);
+        this.persist();
+        // 包级 FX 变了：所有用全局回退的符号试播需重解析
+        this.provider?.sync(this.drafts);
+        if (this.selectedId != null) this.refreshCell(this.selectedId);
+        this.refreshPackFxHud();
+        const draft = this.draftSelected();
+        this.hud?.setSelected(this.selectedId, draft, this.assets());
+        const label = assetId || '(无)';
+        this.hud?.setStatus(`包级${field === 'win' ? '通用高亮' : '通用消除'} → ${label}`);
     }
 
     private pickVariantAsset(index: number, assetId: string): void {
@@ -516,6 +549,7 @@ export class SymbolEditorMain extends Component {
             const packs = listActiveGamePacks();
             const i = Math.max(0, packs.findIndex((p) => p.id === next.id)) + 1;
             this.hud?.setPackLabel(`${next.name} (${i}/${packs.length}) · ${getActiveSpineZoneSync()}`);
+            this.refreshPackFxHud();
             this.rebuildWall();
             this.selectFirst();
             this.hud?.setStatus(`已切换包 → ${next.id}`);
@@ -571,12 +605,15 @@ class DraftProvider implements SymbolProvider {
 
     winCellFxFor(id: number): CellFxDef | null {
         const e = this.getEntry(id);
-        return e?.winCellFx?.valid ? e.winCellFx : null;
+        if (e?.winCellFx?.valid) return e.winCellFx;
+        // 符号未配专用 FX 时，回退包级通用 win/vanish（与 SymbolCatalog 一致）
+        return this.catalog.winCellFxFor(id);
     }
 
     vanishCellFxFor(id: number): CellFxDef | null {
         const e = this.getEntry(id);
-        return e?.vanishCellFx?.valid ? e.vanishCellFx : null;
+        if (e?.vanishCellFx?.valid) return e.vanishCellFx;
+        return this.catalog.vanishCellFxFor(id);
     }
 
     vanishDissolveFor(id: number) {

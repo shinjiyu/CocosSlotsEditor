@@ -150,16 +150,16 @@
           },
           "spine": {
             "_value": true,
-            "_option": "spine-4.2"
+            "_option": "spine-3.8"
           },
           "spine-3.8": {
-            "_value": false,
+            "_value": true,
             "_flags": {
               "LOAD_SPINE_MANUALLY": false
             }
           },
           "spine-4.2": {
-            "_value": true,
+            "_value": false,
             "_flags": {
               "LOAD_SPINE_MANUALLY": false
             }
@@ -207,7 +207,7 @@
           "physics-2d-box2d",
           "profiler",
           "rich-text",
-          "spine-4.2",
+          "spine-3.8",
           "tiled-map",
           "tween",
           "ui",

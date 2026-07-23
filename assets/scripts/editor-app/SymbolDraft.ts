@@ -49,6 +49,10 @@ export interface SymbolSheetDoc {
     zone: string;
     symbols: SymbolDraft[];
     updatedAt: string;
+    /** 包级通用中奖高亮（所有符号默认） */
+    winCellFxAssetId?: string;
+    /** 包级通用消除特效 */
+    vanishCellFxAssetId?: string;
 }
 
 export function draftFromEntry(e: SymbolEntry): SymbolDraft {

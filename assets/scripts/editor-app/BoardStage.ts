@@ -17,6 +17,7 @@ import { BoardDirector } from './BoardDirector';
 import { BoardView } from './BoardView';
 import { SymbolCatalog } from './SymbolCatalog';
 import { SymbolLibrary } from './SymbolLibrary';
+import { AssetLibrary } from './AssetLibrary';
 
 const { ccclass, property, executeInEditMode } = _decorator;
 
@@ -39,6 +40,13 @@ export class BoardStage extends Component {
 
     @property({ type: Prefab, displayName: '符号库', tooltip: 'symbol-library.prefab' })
     symbolLibrary: Prefab | null = null;
+
+    @property({
+        type: Prefab,
+        displayName: '素材库',
+        tooltip: '同包 asset-library.prefab；新包必填（*AssetId 解析）。旧包可空。',
+    })
+    assetLibrary: Prefab | null = null;
 
     @property({ displayName: '格宽(px)' })
     cellW = 126;
@@ -70,7 +78,7 @@ export class BoardStage extends Component {
             console.error('[BoardStage] 缺少盘面文档或符号库配置');
             return null;
         }
-        const catalog = SymbolCatalog.fromLibrary(lib);
+        const catalog = this.makeCatalog(lib);
         const node = new Node('board');
         const view = this.attachBoardView(node, catalog);
         this.node.addChild(node);
@@ -99,6 +107,14 @@ export class BoardStage extends Component {
 
     private libraryComponent(): SymbolLibrary | null {
         return this.symbolLibrary?.data?.getComponent(SymbolLibrary) ?? null;
+    }
+
+    private assetLibraryComponent(): AssetLibrary | null {
+        return this.assetLibrary?.data?.getComponent(AssetLibrary) ?? null;
+    }
+
+    private makeCatalog(lib: SymbolLibrary): SymbolCatalog {
+        return SymbolCatalog.fromLibrary(lib, this.assetLibraryComponent());
     }
 
     private attachBoardView(host: Node, catalog: SymbolCatalog): BoardView {
@@ -149,6 +165,7 @@ export class BoardStage extends Component {
         return [
             this.doc?.uuid ?? '',
             this.symbolLibrary?.uuid ?? '',
+            this.assetLibrary?.uuid ?? '',
             this.cellW, this.cellH, this.colGap, this.rowGap, this.cellFill,
             this.showGridBg ? 1 : 0,
         ].join('|');
@@ -172,7 +189,7 @@ export class BoardStage extends Component {
         this.node.addChild(preview);
         this.preview = preview;
 
-        const view = this.attachBoardView(preview, SymbolCatalog.fromLibrary(lib));
+        const view = this.attachBoardView(preview, this.makeCatalog(lib));
         view.render(doc.states[0]);
         requestEditorRepaint();
     }

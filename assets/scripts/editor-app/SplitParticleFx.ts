@@ -15,8 +15,6 @@ import {
     SpriteFrame,
     UITransform,
     Vec2,
-    assetManager,
-    resources,
 } from 'cc';
 
 /** gfx.BlendFactor 数值 */
@@ -58,27 +56,9 @@ export const BLUE_TIMES_MOVING_PARAMS = {
     endColor: { r: 0, g: 20, b: 255, a: 255 },
 } as const;
 
-const TIMES_PARTICLE_UUID = '23a91710-4e88-42aa-b82e-6144a62e876c@f9941';
-const TIMES_PARTICLE_RES = 'spine-3.8/packs/golden-seth/effects/timesParticle/timesParticle';
-const SPLIT_PARTICLE_UUID = '9de91f26-f3d5-4938-9206-32b7435032c3@f9941';
-const SPLIT_PARTICLE_RES = 'spine-3.8/packs/golden-seth/effects/split/split';
-
+/** 仅接受 SymbolLibrary.expandSplitParticle；不再硬编码 golden-seth 路径 */
 export function resolveTrailSprite(prefabRef: SpriteFrame | null): SpriteFrame | null {
-    if (prefabRef?.isValid) return prefabRef;
-    for (const id of [TIMES_PARTICLE_UUID, SPLIT_PARTICLE_UUID]) {
-        const a = assetManager.assets.get(id);
-        if (a instanceof SpriteFrame) return a;
-    }
-    for (const p of [
-        TIMES_PARTICLE_RES,
-        `${TIMES_PARTICLE_RES}/spriteFrame`,
-        SPLIT_PARTICLE_RES,
-        `${SPLIT_PARTICLE_RES}/spriteFrame`,
-    ]) {
-        const sf = resources.get(p, SpriteFrame);
-        if (sf) return sf;
-    }
-    return null;
+    return prefabRef?.isValid ? prefabRef : null;
 }
 
 /** 与 ParticlePlayerHost._applyParams 同构 */

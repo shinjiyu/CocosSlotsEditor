@@ -54,6 +54,8 @@ export type SymbolAssetField =
     | 'winCellFxAssetId'
     | 'vanishCellFxAssetId';
 
+export type PackFxField = 'win' | 'vanish';
+
 export interface SymbolHudCallbacks {
     onPickSymbol(id: number): void;
     onAddSymbol(): void;
@@ -64,6 +66,7 @@ export interface SymbolHudCallbacks {
     onOpenBoard(): void;
     onPatchField(key: keyof SymbolDraft, dir: 1 | -1): void;
     onPickAsset(field: SymbolAssetField, assetId: string): void;
+    onPickPackFx(field: PackFxField, assetId: string): void;
     onPickVariantAsset(index: number, assetId: string): void;
     onPreviewAnim(kind: 'idle' | 'enter' | 'win' | 'vanish'): void;
 }
@@ -80,8 +83,11 @@ export class SymbolEditorHud extends Component {
     private variantPage: Node | null = null;
     private variantGrid: Node | null = null;
     private assetSlotsRoot: Node | null = null;
+    private packFxSlotsRoot: Node | null = null;
     private inspectorTab: 'base' | 'variants' = 'base';
     private assetsCache: readonly AssetEntry[] = [];
+    private packWinFxId = '';
+    private packVanishFxId = '';
     private pickerRoot: Node | null = null;
 
     init(callbacks: SymbolHudCallbacks, packLabel: string): void {
@@ -111,6 +117,7 @@ export class SymbolEditorHud extends Component {
             this.setInfo('enter', '—');
             this.setInfo('win', '—');
             this.setInfo('vanish', '—');
+            this.rebuildPackFxSlots();
             this.rebuildAssetSlots(null);
             this.rebuildVariantGrid(null, assets);
             return;
@@ -128,8 +135,20 @@ export class SymbolEditorHud extends Component {
         this.setInfo('enter', draft.enterAnim || '(空)');
         this.setInfo('win', draft.winAnim || '(空)');
         this.setInfo('vanish', draft.vanishAnim || '(空)');
+        this.rebuildPackFxSlots();
         this.rebuildAssetSlots(draft);
         this.rebuildVariantGrid(draft, assets);
+    }
+
+    /** 刷新包级通用高亮/消除展示 */
+    setPackFx(winAssetId: string, vanishAssetId: string): void {
+        this.packWinFxId = winAssetId || '';
+        this.packVanishFxId = vanishAssetId || '';
+        this.rebuildPackFxSlots();
+        // 符号槽「→包级」文案依赖包级 id，顺带刷一下
+        if (this.assetSlotsRoot) {
+            // setSelected 会重建；这里只重建 pack；调用方通常紧接 setSelected
+        }
     }
 
     /** 裁剪视口内的墙根；Main 往 ensureWallRoot 塞格子 */
@@ -293,13 +312,21 @@ export class SymbolEditorHud extends Component {
         this.infoLabels.set('placeTop', valuePlaceTop);
         y -= 36;
 
+        y = this.addTitle(basePage, '包级通用（所有符号）', y);
+        const packSlots = new Node('PackFxSlots');
+        packSlots.addComponent(UITransform).setContentSize(SE_PANEL_W - 16, 100);
+        packSlots.setPosition(0, y - 48, 0);
+        basePage.addChild(packSlots);
+        this.packFxSlotsRoot = packSlots;
+        y -= 108;
+
         y = this.addTitle(basePage, '素材（点图更换）', y);
         const slots = new Node('AssetSlots');
-        slots.addComponent(UITransform).setContentSize(SE_PANEL_W - 16, 210);
-        slots.setPosition(0, y - 100, 0);
+        slots.addComponent(UITransform).setContentSize(SE_PANEL_W - 16, 200);
+        slots.setPosition(0, y - 96, 0);
         basePage.addChild(slots);
         this.assetSlotsRoot = slots;
-        y -= 220;
+        y -= 208;
 
         y = this.addTitle(basePage, '动画', y);
         for (const [key, label] of [
@@ -352,30 +379,71 @@ export class SymbolEditorHud extends Component {
         if (this.variantPage) this.variantPage.active = tab === 'variants';
     }
 
+    private rebuildPackFxSlots(): void {
+        const root = this.packFxSlotsRoot;
+        if (!root) return;
+        root.removeAllChildren();
+        const cardW = 150;
+        const cardH = 88;
+        const gapX = 10;
+        const slots: Array<{ title: string; field: PackFxField; id: string }> = [
+            { title: '通用高亮', field: 'win', id: this.packWinFxId },
+            { title: '通用消除', field: 'vanish', id: this.packVanishFxId },
+        ];
+        slots.forEach((slot, i) => {
+            const x = (i - 0.5) * (cardW + gapX);
+            root.addChild(
+                this.makeAssetCard(
+                    {
+                        title: slot.title,
+                        field: slot.field === 'win' ? 'winCellFxAssetId' : 'vanishCellFxAssetId',
+                        kinds: [AssetKind.effect, AssetKind.spine],
+                        id: slot.id,
+                        packField: slot.field,
+                    },
+                    x,
+                    0,
+                    cardW,
+                    cardH,
+                ),
+            );
+        });
+    }
+
     private rebuildAssetSlots(draft: SymbolDraft | null): void {
         const root = this.assetSlotsRoot;
         if (!root) return;
         root.removeAllChildren();
 
-        const slots: Array<{ title: string; field: SymbolAssetField; kinds: AssetPickKinds; id: string }> = [
+        const packWinName = this.assetName(this.packWinFxId);
+        const packVanishName = this.assetName(this.packVanishFxId);
+        const slots: Array<{
+            title: string;
+            field: SymbolAssetField;
+            kinds: AssetPickKinds;
+            id: string;
+            emptyHint?: string;
+        }> = [
             { title: '纹理', field: 'textureAssetId', kinds: AssetKind.texture, id: draft?.textureAssetId || '' },
             { title: 'Spine', field: 'spineAssetId', kinds: AssetKind.spine, id: draft?.spineAssetId || '' },
             {
-                title: '中奖FX',
+                title: '符号中奖',
                 field: 'winCellFxAssetId',
                 kinds: [AssetKind.effect, AssetKind.spine],
                 id: draft?.winCellFxAssetId || '',
+                emptyHint: packWinName ? `→${packWinName}` : '(用包级)',
             },
             {
-                title: '消除FX',
+                title: '符号消除',
                 field: 'vanishCellFxAssetId',
                 kinds: [AssetKind.effect, AssetKind.spine],
                 id: draft?.vanishCellFxAssetId || '',
+                emptyHint: packVanishName ? `→${packVanishName}` : '(用包级)',
             },
         ];
 
         const cardW = 150;
-        const cardH = 96;
+        const cardH = 88;
         const gapX = 10;
         const gapY = 10;
         slots.forEach((slot, i) => {
@@ -387,30 +455,43 @@ export class SymbolEditorHud extends Component {
         });
     }
 
+    private assetName(id: string): string {
+        if (!id) return '';
+        const a = this.assetsCache.find((x) => x.id === id);
+        return a ? short(assetLabel(a), 10) : '';
+    }
+
     private makeAssetCard(
-        slot: { title: string; field: SymbolAssetField; kinds: AssetPickKinds; id: string },
+        slot: {
+            title: string;
+            field: SymbolAssetField;
+            kinds: AssetPickKinds;
+            id: string;
+            emptyHint?: string;
+            packField?: PackFxField;
+        },
         x: number,
         y: number,
         w: number,
         h: number,
     ): Node {
-        const card = new Node(`slot_${slot.field}`);
+        const card = new Node(`slot_${slot.packField ? `pack_${slot.packField}` : slot.field}`);
         card.addComponent(UITransform).setContentSize(w, h);
         card.setPosition(x, y, 0);
         const bg = card.addComponent(Graphics);
-        bg.fillColor = new Color(30, 36, 54, 255);
+        bg.fillColor = slot.packField ? new Color(36, 48, 72, 255) : new Color(30, 36, 54, 255);
         bg.roundRect(-w / 2, -h / 2, w, h, 8);
         bg.fill();
-        bg.strokeColor = new Color(70, 90, 130, 255);
+        bg.strokeColor = slot.packField ? new Color(120, 160, 220, 255) : new Color(70, 90, 130, 255);
         bg.lineWidth = 1;
         bg.roundRect(-w / 2, -h / 2, w, h, 8);
         bg.stroke();
 
-        const thumbSize = 56;
+        const thumbSize = 48;
         const thumb = new Node('thumb');
         thumb.addComponent(UITransform).setContentSize(thumbSize, thumbSize);
         thumb.addComponent(Mask).type = Mask.Type.RECT;
-        thumb.setPosition(0, 12, 0);
+        thumb.setPosition(0, 10, 0);
         const tbg = new Node('tbg');
         tbg.addComponent(UITransform).setContentSize(thumbSize, thumbSize);
         const tg = tbg.addComponent(Graphics);
@@ -424,7 +505,7 @@ export class SymbolEditorHud extends Component {
 
         const title = new Node('title');
         title.addComponent(UITransform).setContentSize(w - 8, 16);
-        title.setPosition(0, -h / 2 + 28, 0);
+        title.setPosition(0, -h / 2 + 26, 0);
         const titleLab = title.addComponent(Label);
         titleLab.string = slot.title;
         titleLab.fontSize = 12;
@@ -433,17 +514,23 @@ export class SymbolEditorHud extends Component {
 
         const name = new Node('name');
         name.addComponent(UITransform).setContentSize(w - 10, 16);
-        name.setPosition(0, -h / 2 + 12, 0);
+        name.setPosition(0, -h / 2 + 10, 0);
         const nameLab = name.addComponent(Label);
-        nameLab.string = asset ? short(assetLabel(asset), 12) : '(无)';
+        nameLab.string = asset
+            ? short(assetLabel(asset), 12)
+            : slot.emptyHint || '(无)';
         nameLab.fontSize = 12;
         nameLab.overflow = Label.Overflow.SHRINK;
-        nameLab.color = new Color(230, 235, 245, 255);
+        nameLab.color = asset ? new Color(230, 235, 245, 255) : new Color(160, 170, 190, 255);
         card.addChild(name);
 
         const open = (): void => {
             this.openPicker(`选择${slot.title}`, slot.kinds, slot.id, (assetId) => {
-                this.callbacks?.onPickAsset(slot.field, assetId);
+                if (slot.packField) {
+                    this.callbacks?.onPickPackFx(slot.packField, assetId);
+                } else {
+                    this.callbacks?.onPickAsset(slot.field, assetId);
+                }
             });
         };
         card.on(Node.EventType.TOUCH_END, open);

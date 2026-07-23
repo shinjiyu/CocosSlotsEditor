@@ -1,0 +1,1231 @@
+[
+  {
+    "__type__": "cc.Prefab",
+    "_name": "symbol-library",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_native": "",
+    "data": {
+      "__id__": 1
+    },
+    "optimizationPolicy": 0,
+    "persistent": false
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "symbol-library",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "_parent": null,
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 2
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_mobility": 0,
+    "_layer": 33554432,
+    "_euler": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "4ae26tQDjRABp/lkeoyV6xn",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "symbols": [
+      {
+        "__id__": 37
+      },
+      {
+        "__id__": 38
+      },
+      {
+        "__id__": 39
+      },
+      {
+        "__id__": 40
+      },
+      {
+        "__id__": 41
+      },
+      {
+        "__id__": 42
+      },
+      {
+        "__id__": 43
+      },
+      {
+        "__id__": 44
+      },
+      {
+        "__id__": 45
+      },
+      {
+        "__id__": 46
+      },
+      {
+        "__id__": 47
+      },
+      {
+        "__id__": 48
+      },
+      {
+        "__id__": 49
+      },
+      {
+        "__id__": 50
+      },
+      {
+        "__id__": 51
+      },
+      {
+        "__id__": 52
+      }
+    ],
+    "symbolWidth": 152,
+    "symbolHeight": 128,
+    "winCellFx": {
+      "__id__": 3
+    },
+    "vanishCellFx": {
+      "__id__": 4
+    },
+    "multiDigitFont": null,
+    "expandSplitParticle": null,
+    "expandSplitB": null,
+    "expandSplitBAnim": "split_B",
+    "_id": ""
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "CellFxDef",
+    "spine": null,
+    "anim": "",
+    "front": true,
+    "scale": 1,
+    "offset": {
+      "__type__": "cc.Vec2",
+      "x": 0,
+      "y": 0
+    },
+    "sound": null,
+    "soundVolume": 1
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 1,
+    "name": "B1",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_01_B1",
+    "spineAssetId": "spine_thor2_symbolB1",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 5
+    },
+    "vanishCellFx": {
+      "__id__": 6
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 2,
+    "name": "B2",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_02_B2",
+    "spineAssetId": "spine_thor2_symbolB2",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 7
+    },
+    "vanishCellFx": {
+      "__id__": 8
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 3,
+    "name": "F1",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_03_F1",
+    "spineAssetId": "spine_thor2_symbolF12345",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 9
+    },
+    "vanishCellFx": {
+      "__id__": 10
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 4,
+    "name": "F2",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_04_F2",
+    "spineAssetId": "spine_thor2_symbolF12345",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 11
+    },
+    "vanishCellFx": {
+      "__id__": 12
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 5,
+    "name": "F3",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_05_F3",
+    "spineAssetId": "spine_thor2_symbolF12345",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 13
+    },
+    "vanishCellFx": {
+      "__id__": 14
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 6,
+    "name": "F4",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_06_F4",
+    "spineAssetId": "spine_thor2_symbolF12345",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 15
+    },
+    "vanishCellFx": {
+      "__id__": 16
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 7,
+    "name": "F5",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_07_F5",
+    "spineAssetId": "spine_thor2_symbolF12345",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 17
+    },
+    "vanishCellFx": {
+      "__id__": 18
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 8,
+    "name": "M1",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_08_M1",
+    "spineAssetId": "spine_thor2_symbolM1",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 19
+    },
+    "vanishCellFx": {
+      "__id__": 20
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 9,
+    "name": "M2",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_09_M2",
+    "spineAssetId": "spine_thor2_symbolM2",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 21
+    },
+    "vanishCellFx": {
+      "__id__": 22
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 10,
+    "name": "M3",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_10_M3",
+    "spineAssetId": "spine_thor2_symbolM3",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 23
+    },
+    "vanishCellFx": {
+      "__id__": 24
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 11,
+    "name": "M4",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_11_M4",
+    "spineAssetId": "spine_thor2_symbolM4",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 25
+    },
+    "vanishCellFx": {
+      "__id__": 26
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 12,
+    "name": "A",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_12_A",
+    "spineAssetId": "spine_thor2_symbolAKQJTE",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play_A",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 27
+    },
+    "vanishCellFx": {
+      "__id__": 28
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 13,
+    "name": "K",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_13_K",
+    "spineAssetId": "spine_thor2_symbolAKQJTE",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play_K",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 29
+    },
+    "vanishCellFx": {
+      "__id__": 30
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 14,
+    "name": "Q",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_14_Q",
+    "spineAssetId": "spine_thor2_symbolAKQJTE",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play_Q",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 31
+    },
+    "vanishCellFx": {
+      "__id__": 32
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 15,
+    "name": "J",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_15_J",
+    "spineAssetId": "spine_thor2_symbolAKQJTE",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play_J",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 33
+    },
+    "vanishCellFx": {
+      "__id__": 34
+    }
+  },
+  {
+    "__type__": "SymbolEntry",
+    "id": 16,
+    "name": "TE",
+    "kind": 0,
+    "textureAssetId": "tex_thor2_16_TE",
+    "spineAssetId": "spine_thor2_symbolAKQJTE",
+    "prefabAssetId": "",
+    "visualVariants": [],
+    "placementMainId": "",
+    "placementTopStripId": "",
+    "placementTopStripCells": 2,
+    "placementTopStripVariantKey": "",
+    "enterSoundAssetId": "",
+    "winSoundAssetId": "",
+    "vanishSoundAssetId": "",
+    "digitFontAssetId": "",
+    "winCellFxAssetId": "",
+    "vanishCellFxAssetId": "",
+    "texture": null,
+    "spine": null,
+    "prefab": null,
+    "idleAnim": "",
+    "enterAnim": "",
+    "winAnim": "play_TE",
+    "vanishAnim": "",
+    "enterSound": null,
+    "winSound": null,
+    "vanishSound": null,
+    "enterFx": 0,
+    "scaleMul": 1,
+    "digitFont": null,
+    "winCellFx": {
+      "__id__": 35
+    },
+    "vanishCellFx": {
+      "__id__": 36
+    }
+  }
+]

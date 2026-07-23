@@ -93,6 +93,8 @@ node ai-game-workspace/scripts/merge-symbol-pack.mjs \
 
 若 profile `symbolLibraryRel` 为扁平 `assets/resources/symbol-library.prefab`，而包内库在 `spine-*/packs/<id>/`，合并脚本会再镜像一份到 profile 路径（uuid 美术仍落在 packs 目录下）。
 
+**新包契约**：同目录必须有 `asset-library.prefab`；导出闭包会一并裁剪/拷贝。PA `BoardStage` 需同时引用符号库 + 素材库，否则 *AssetId 无法解析、符号空白。
+
 AIWS WebSocket：`symbol_pack_merge`（pack 默认 `<boardEditorRoot>/temp/symbol-pack`）。
 
 脚本同步仍用：

@@ -118,15 +118,51 @@ export function resolveSymbolEntry(entry: SymbolEntry, assets: AssetProvider | n
     return entry;
 }
 
-function applyEffectAsset(fx: CellFxDef, assetId: string, assets: AssetProvider): void {
-    if (!assetId) return;
+/** 把 effect/spine 素材写进 CellFxDef；assetId 空串则清空 */
+export function applyEffectAsset(
+    fx: CellFxDef,
+    assetId: string,
+    assets: AssetProvider,
+    opts?: { forceAnim?: boolean },
+): void {
+    if (!assetId) {
+        fx.spine = null;
+        fx.anim = '';
+        fx.sound = null;
+        return;
+    }
     const a = assets.getAsset(assetId);
     if (!a || (a.kind !== AssetKind.effect && a.kind !== AssetKind.spine)) return;
     if (a.spine) fx.spine = a.spine;
-    if (a.defaultAnim && !fx.anim) fx.anim = a.defaultAnim;
+    if (a.defaultAnim && (opts?.forceAnim || !fx.anim)) fx.anim = a.defaultAnim;
     if (a.audio) fx.sound = a.audio;
     fx.front = a.effectFront;
     fx.scale = a.effectScale;
     if (a.effectOffset) fx.offset = a.effectOffset.clone();
     fx.soundVolume = a.volume;
+}
+
+/** 用 spine uuid + 动画名反查素材 id（优先 effect） */
+export function matchCellFxAssetId(fx: CellFxDef | null | undefined, assets: AssetProvider | null): string {
+    if (!fx?.spine || !assets) return '';
+    const uuid = (fx.spine as { uuid?: string; _uuid?: string }).uuid
+        || (fx.spine as { uuid?: string; _uuid?: string })._uuid
+        || '';
+    if (!uuid) return '';
+    const anim = fx.anim || '';
+    const candidates = assets.assets.filter((a) => {
+        if (a.kind !== AssetKind.effect && a.kind !== AssetKind.spine) return false;
+        if (!a.spine) return false;
+        const au = (a.spine as { uuid?: string; _uuid?: string }).uuid
+            || (a.spine as { uuid?: string; _uuid?: string })._uuid
+            || '';
+        return au === uuid;
+    });
+    if (!candidates.length) return '';
+    const byAnim = anim
+        ? candidates.find((a) => a.kind === AssetKind.effect && a.defaultAnim === anim)
+            || candidates.find((a) => a.defaultAnim === anim)
+        : null;
+    const preferEffect = candidates.find((a) => a.kind === AssetKind.effect);
+    return (byAnim || preferEffect || candidates[0])!.id;
 }

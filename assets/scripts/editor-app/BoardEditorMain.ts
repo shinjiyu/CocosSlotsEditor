@@ -370,6 +370,7 @@ export class BoardEditorMain extends Component {
             },
             this.catalog,
             this.formatGameLabel(this.gamePack),
+            { variableColumns: this.gamePack?.id === 'lvbu' },
         );
         this.hud.setGapInfo(this.boardView.colGap, this.boardView.rowGap, {
             lockCol: !!this.layoutSpacing()?.lockColGap,
@@ -790,11 +791,7 @@ export class BoardEditorMain extends Component {
 
     private isColumnFillId = (symbolId: number): boolean => {
         const entry = this.catalog.getEntry(symbolId);
-        if (isColumnFillEntry(entry)) return true;
-        // 旧包兜底：未挂 placement 时认 roles.bonus
-        if (entry && (entry.placementMainId || '').trim()) return false;
-        const profile = this.layoutProfile();
-        return !!profile && symbolId === profile.roles.bonus;
+        return isColumnFillEntry(entry);
     };
 
     private isTopRowSpanId = (symbolId: number): boolean => {
@@ -808,6 +805,10 @@ export class BoardEditorMain extends Component {
 
     private refreshOccupancyHud(): void {
         if (!this.doc || !this.hud) return;
+        if (this.gamePack?.id !== 'lvbu') {
+            this.hud.setColumnRowsEditor(null);
+            return;
+        }
         const rows = this.doc.states[this.currentIndex].board.topology.visibleRows;
         this.hud.setColumnOccupancy(rows, this.selectedCol);
         if (this.selectedCol !== null) {
@@ -821,6 +822,10 @@ export class BoardEditorMain extends Component {
 
     private refreshBrushTierHud(): void {
         if (!this.hud) return;
+        if (this.gamePack?.id !== 'lvbu') {
+            this.hud.setBrushTierInfo('', false);
+            return;
+        }
         if (this.brushTier == null) {
             this.hud.setBrushTierInfo('跟列(auto)');
         } else {
@@ -832,7 +837,7 @@ export class BoardEditorMain extends Component {
     }
 
     private cycleBrushTier(dir: 1 | -1): void {
-        // 循环：null → 1 → 2 → … → 6 → null
+        if (this.gamePack?.id !== 'lvbu') return;
         const order: Array<number | null> = [null, 1, 2, 3, 4, 5, 6];
         const i = Math.max(0, order.indexOf(this.brushTier));
         this.brushTier = order[(i + dir + order.length) % order.length]!;
@@ -908,11 +913,13 @@ export class BoardEditorMain extends Component {
             this.brush = undefined;
             this.brushKey = undefined;
             this.brushTier = null;
+            this.hud?.setVariableColumnUi(next.id === 'lvbu');
             this.hud?.setGameInfo(this.formatGameLabel(next));
             this.hud?.rebuildBrushes(this.catalog);
             this.hud?.setBrushHighlight(undefined);
             this.refreshBrushTierHud();
             this.clearSelection();
+            this.boardView?.invalidateLayout();
             this.showState(this.currentIndex);
             this.hud?.setStatus(`游戏包：${next.id}`);
             console.log(`[BoardEditorMain] game pack → ${next.id} (${next.libraryPath})`);
@@ -1014,6 +1021,8 @@ export class BoardEditorMain extends Component {
             lockCol: !!spacing?.lockColGap,
             lockRow: !!spacing?.lockRowGap,
         });
+        // render 在拓扑不变时会跳过 rebuild；改间距必须强制重排
+        this.boardView.invalidateLayout();
         this.showState(this.currentIndex);
     }
 
@@ -1593,6 +1602,7 @@ export class BoardEditorMain extends Component {
     private adjustColumnRows(dir: 1 | -1 | 0, colArg?: number, absolute?: number): void {
         if (!this.doc || !this.history || !this.boardView) return;
         if (this.director?.isPlaying) return;
+        if (this.gamePack?.id !== 'lvbu') return;
         const col = colArg ?? this.selectedCol ?? this.boardView.getSelected()?.col ?? null;
         if (col === null) {
             this.hud?.setStatus('先点选一列（盘面格或下方列头）');

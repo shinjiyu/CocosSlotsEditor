@@ -86,10 +86,25 @@ export function openAssetPicker(host: Node, opts: AssetPickerOptions): Node {
     }
 
     const kinds = normalizeKinds(opts.kinds);
-    const list = opts.assets.filter((a) => kinds.includes(a.kind));
+    // effect 排前面，方便选通用格子特效（避免被符号 spine 淹没）
+    const list = opts.assets
+        .filter((a) => kinds.includes(a.kind))
+        .slice()
+        .sort((a, b) => {
+            if (a.kind !== b.kind) {
+                if (a.kind === AssetKind.effect) return -1;
+                if (b.kind === AssetKind.effect) return 1;
+            }
+            return assetLabel(a).localeCompare(assetLabel(b), 'zh');
+        });
+    const effectN = list.filter((a) => a.kind === AssetKind.effect).length;
     const hint = makeLabel(
         panel,
-        list.length ? `共 ${list.length} 项 · 点选即应用 · 滚轮浏览` : '素材库里没有这类资源',
+        list.length
+            ? effectN > 0 && kinds.includes(AssetKind.effect)
+                ? `共 ${list.length} 项（特效 ${effectN}）· 点选即应用 · 滚轮浏览`
+                : `共 ${list.length} 项 · 点选即应用 · 滚轮浏览`
+            : '素材库里没有这类资源',
         0,
         PANEL_H / 2 - 56,
         14,

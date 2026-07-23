@@ -144,15 +144,45 @@ export class EditorHud extends Component {
     private columnOccupancyLabels: Label[] = [];
     private brushTierLabel: Label | null = null;
     private brushTierRow: Node | null = null;
+    /** 吕布变数列 UI（列符号数 + 刷子档）；赛特等固定盘面关闭 */
+    private variableColumnBlock: Node | null = null;
+    private brushSectionTitleLabel: Label | null = null;
+    private variableColumnsEnabled = false;
 
     /** 盘面区中心（给 Main 摆 BoardView 用） */
     static readonly BOARD_CENTER = new Vec3(boardAreaRect().cx, boardAreaRect().cy, 0);
 
-    init(callbacks: HudCallbacks, catalog: SymbolCatalog, gameLabel = ''): void {
+    init(
+        callbacks: HudCallbacks,
+        catalog: SymbolCatalog,
+        gameLabel = '',
+        opts?: { variableColumns?: boolean },
+    ): void {
         this.callbacks = callbacks;
+        this.variableColumnsEnabled = !!opts?.variableColumns;
         this.buildToolbar();
         this.buildFrameNav();
         this.buildInspector(catalog, gameLabel);
+    }
+
+    /**
+     * 变数列盘面（吕布）才显示「列符号数 / 刷子大小」。
+     * 固定盘面（赛特）关闭，避免误调列高。
+     */
+    setVariableColumnUi(enabled: boolean): void {
+        this.variableColumnsEnabled = enabled;
+        if (this.variableColumnBlock?.isValid) {
+            this.variableColumnBlock.active = enabled;
+        }
+        if (this.brushSectionTitleLabel) {
+            this.brushSectionTitleLabel.string = enabled
+                ? 'Symbol 刷子（先选大小档再刷）'
+                : 'Symbol 刷子';
+        }
+        if (!enabled) {
+            if (this.columnRowsRow) this.columnRowsRow.active = false;
+            if (this.brushTierRow) this.brushTierRow.active = false;
+        }
     }
 
     setStatus(text: string): void {
@@ -196,6 +226,10 @@ export class EditorHud extends Component {
      */
     setColumnRowsEditor(rows: number | null, tierLabel = ''): void {
         if (!this.columnRowsRow) return;
+        if (!this.variableColumnsEnabled) {
+            this.columnRowsRow.active = false;
+            return;
+        }
         this.columnRowsRow.active = true;
         if (this.columnRowsLabel) {
             if (rows === null) {
@@ -210,6 +244,7 @@ export class EditorHud extends Component {
 
     /** 刷新六列符号数显示；activeCol 高亮 */
     setColumnOccupancy(rows: readonly number[], activeCol: number | null = null): void {
+        if (!this.variableColumnsEnabled) return;
         for (let c = 0; c < this.columnOccupancyLabels.length; c++) {
             const lab = this.columnOccupancyLabels[c];
             if (!lab) continue;
@@ -222,6 +257,10 @@ export class EditorHud extends Component {
     /** 刷子视觉档文案：跟列 / tier-N */
     setBrushTierInfo(text: string, visible = true): void {
         if (!this.brushTierRow) return;
+        if (!this.variableColumnsEnabled) {
+            this.brushTierRow.active = false;
+            return;
+        }
         this.brushTierRow.active = visible;
         if (this.brushTierLabel) this.brushTierLabel.string = text;
     }
@@ -409,12 +448,21 @@ export class EditorHud extends Component {
         // — 选中格倍率（仅 multi 球显示）—
         cursorY = this.buildMultiplierRow(content, cursorY);
 
-        // — 列符号数（常显六列 + 选中列 −/+）—
-        cursorY = this.addSectionTitle(content, '列符号数（2~7）', cursorY);
-        cursorY = this.buildColumnOccupancyBlock(content, cursorY);
-
-        // — 刷子视觉档 —
-        cursorY = this.buildBrushTierRow(content, cursorY);
+        // — 列符号数 / 刷子档（仅变数列盘面；赛特等固定盘不建，避免空占位）—
+        if (this.variableColumnsEnabled) {
+            const block = new Node('VariableColumnUi');
+            block.addComponent(UITransform);
+            block.setPosition(0, 0, 0);
+            content.addChild(block);
+            this.variableColumnBlock = block;
+            let by = cursorY;
+            by = this.addSectionTitle(block, '列符号数（2~7）', by);
+            by = this.buildColumnOccupancyBlock(block, by);
+            by = this.buildBrushTierRow(block, by);
+            cursorY = by;
+        } else {
+            this.variableColumnBlock = null;
+        }
 
         // — 游戏包切换 —
         cursorY = this.addSectionTitle(content, '游戏包 (gameId)', cursorY);
@@ -431,7 +479,12 @@ export class EditorHud extends Component {
         cursorY -= 44;
 
         // — symbol 刷子面板 —
-        cursorY = this.addSectionTitle(content, 'Symbol 刷子（先选大小档再刷）', cursorY);
+        const brushTitle = this.variableColumnsEnabled
+            ? 'Symbol 刷子（先选大小档再刷）'
+            : 'Symbol 刷子';
+        const brushTitleNode = this.addSectionTitleNode(content, brushTitle, cursorY);
+        this.brushSectionTitleLabel = brushTitleNode.getComponent(Label);
+        cursorY -= 28;
         this.brushSectionTop = cursorY;
         const { root, height } = this.makeBrushGrid(catalog, cb);
         root.setPosition(0, cursorY, 0);
